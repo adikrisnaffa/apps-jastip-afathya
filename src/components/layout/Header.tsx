@@ -19,8 +19,7 @@ import { Skeleton } from "../ui/skeleton";
 export default function Header() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
-  const isAnonymous = user?.isAnonymous;
-
+  
   const handleLogout = async () => {
     if(auth) {
         await auth.signOut();
@@ -40,7 +39,7 @@ export default function Header() {
           </Link>
           <div className="flex items-center gap-4">
             {isUserLoading && <Skeleton className="h-8 w-24" />}
-            {!isUserLoading && user && !isAnonymous && (
+            {!isUserLoading && user && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -59,7 +58,7 @@ export default function Header() {
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium leading-none">
-                        {user.displayName || 'Jastip User'}
+                        {user.displayName || (user.isAnonymous ? 'Anonymous User' : 'Jastip User')}
                       </p>
                       <p className="text-xs leading-none text-muted-foreground">
                         {user.phoneNumber || user.email}
@@ -74,7 +73,7 @@ export default function Header() {
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
-             {!isUserLoading && (!user || isAnonymous) && (
+             {!isUserLoading && !user && (
                  <Button asChild>
                      <Link href="/login">
                         <LogIn className="mr-2 h-4 w-4"/>

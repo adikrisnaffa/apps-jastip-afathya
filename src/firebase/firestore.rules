@@ -1,0 +1,101 @@
+/**
+ * @fileOverview Security rules for the JasTip Express application.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model for user profiles,
+ * orders, and notas, ensuring that users can only access their own data.
+ * Jastip events are publicly readable but writable by no one (in this prototype).
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores user profile information.
+ * - /users/{userId}/orders/{orderId}: Stores orders associated with a specific user.
+ * - /users/{userId}/orders/{orderId}/notas/{notaId}: Stores notas associated with a specific order.
+ * - /events/{eventId}: Stores publicly available Jastip event information.
+ *
+ * Key Security Decisions:
+ * - User data is strictly private and accessible only to the owning user.
+ * - Listing all users is disallowed.
+ * - Jastip events are publicly readable but not writable in this prototype.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Controls access to user profile information.
+     * @path /users/{userId}
+     * @allow (create) - User with ID 'user123' can create their profile if authenticated as 'user123'.
+     * @allow (get, update, delete, list) - User with ID 'user123' can get, update, or delete their profile if authenticated as 'user123'.
+     * @deny (create) - User with ID 'user456' cannot create a profile with ID 'user123'.
+     * @deny (get, update, delete) - User with ID 'user456' cannot access profile with ID 'user123'.
+     * @principle Enforces document ownership for all operations.
+     */
+    match /users/{userId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if false; // No listing of all users.
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isOwner(userId) && resource.data.id == userId;
+      allow delete: if isOwner(userId) && resource.data.id == userId;
+    }
+
+    /**
+     * @description Controls access to orders associated with a specific user.
+     * @path /users/{userId}/orders/{orderId}
+     * @allow (create) - User with ID 'user123' can create an order under their profile.
+     * @allow (get, update, delete, list) - User with ID 'user123' can get, update, delete, or list orders under their profile.
+     * @deny (create) - User with ID 'user456' cannot create an order under user 'user123'.
+     * @deny (get, update, delete) - User with ID 'user456' cannot access orders under user 'user123'.
+     * @principle Enforces document ownership and validates relational integrity.
+     */
+    match /users/{userId}/orders/{orderId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+    }
+
+    /**
+     * @description Controls access to notas associated with a specific order.
+     * @path /users/{userId}/orders/{orderId}/notas/{notaId}
+     * @allow (create) - User with ID 'user123' can create a nota under their order.
+     * @allow (get, update, delete, list) - User with ID 'user123' can get, update, delete, or list notas under their order.
+     * @deny (create) - User with ID 'user456' cannot create a nota under user 'user123'.
+     * @deny (get, update, delete) - User with ID 'user456' cannot access notas under user 'user123'.
+     * @principle Enforces document ownership and validates relational integrity.
+     */
+    match /users/{userId}/orders/{orderId}/notas/{notaId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+    }
+
+    /**
+     * @description Controls access to Jastip event information.
+     * @path /events/{eventId}
+     * @allow (get, list) - Any user can read Jastip event information.
+     * @deny (create, update, delete) - No one can create, update, or delete events in this prototype.
+     * @principle Allows public read access with owner-only writes (currently disabled).
+     */
+    match /events/{eventId} {
+      allow get, list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+  }
+}

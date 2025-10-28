@@ -3,7 +3,7 @@
 import React, { useMemo, type ReactNode, useEffect, useState } from 'react';
 import { FirebaseProvider, useAuth } from '@/firebase/provider';
 import { initializeFirebase } from '@/firebase';
-import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
 import { Skeleton } from '@/components/ui/skeleton';
 
 function AuthGate({ children }: { children: ReactNode }) {
@@ -12,24 +12,17 @@ function AuthGate({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (auth) {
-      // First, attempt to sign in anonymously.
-      signInAnonymously(auth)
-        .then(() => {
-          // After attempting sign-in, we use onAuthStateChanged 
-          // to know when Firebase has a confirmed user state.
-          const unsubscribe = onAuthStateChanged(auth, (user) => {
-            // As soon as we get any user state back (null or a user object),
-            // we know auth is ready.
-            setIsAuthReady(true);
-            unsubscribe(); // We only need this for the initial check.
-          });
-        })
-        .catch((error) => {
-          console.error("Anonymous sign-in failed during init", error);
-          // Even if sign-in fails, we're "ready" to show the app,
-          // though subsequent data fetches might fail.
-          setIsAuthReady(true); 
-        });
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        // As soon as we get any user state back (null or a user object),
+        // we know auth is ready.
+        setIsAuthReady(true);
+        unsubscribe(); // We only need this for the initial check.
+      });
+      return () => unsubscribe();
+    } else {
+      // If auth service isn't even available, we can consider it "ready"
+      // to show a state without a user.
+      setIsAuthReady(true);
     }
   }, [auth]);
 
