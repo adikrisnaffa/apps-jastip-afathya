@@ -1,100 +1,111 @@
 /**
- * @fileoverview Firestore Security Rules for JasTip Express Prototyping.
+ * @fileoverview Firestore Security Rules for JasTip Express application.
  *
  * Core Philosophy:
- * This ruleset prioritizes strict user-ownership for personal data and allows public read access to Jastip events.
- * Data validation is relaxed to enable rapid prototyping.
+ * This ruleset employs a strict path-based ownership model for user data,
+ * ensuring that users can only access their own information. Top-level collections
+ * may have different access control models as defined below.
  *
  * Data Structure:
- * - /users/{userId}: Stores individual user profiles.
- * - /users/{userId}/orders/{orderId}: Stores orders placed by a specific user.
- * - /users/{userId}/orders/{orderId}/notas/{notaId}: Stores receipts (notas) for specific orders.
- * - /events/{eventId}: Stores information about Jastip events (public).
+ * - /users/{userId}: Stores user profile information.
+ * - /users/{userId}/orders/{orderId}: Stores orders associated with a specific user.
+ * - /users/{userId}/orders/{orderId}/notas/{notaId}: Stores notas/receipts associated with a specific order.
+ * - /events/{eventId}: Stores information about Jastip events.
  *
  * Key Security Decisions:
- * - Users can only access their own data within the /users/{userId} tree.
- * - Jastip events are publicly readable.
+ * - Users can only create, read, update, and delete their own user documents and related subcollections.
+ * - Events are readable by everyone.
  *
  * Denormalization for Authorization:
- * - The `orders` and `notas` collections are nested under `/users/{userId}` to avoid needing to store redundant `userId` properties inside those documents.
+ *  N/A - Authorization is based on path structure.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows access to user profile information.
+     * @description Allows users to manage their own profile information.
      * @path /users/{userId}
-     * @allow (create) - Authenticated user creates their own profile.
-     * @allow (get, list, update, delete) - Authenticated user accesses their own profile.
-     * @deny (create, get, list, update, delete) - Any other user attempts to access this profile.
-     * @principle Enforces document ownership for all operations.
+     * @allow (create) User with matching ID can create their profile: request.auth.uid == userId
+     * @allow (get, update, delete) Signed-in user can access their own profile: request.auth.uid == userId
+     * @deny (create, update, delete) Signed-in user cannot access another user's profile: request.auth.uid != userId
+     * @principle Enforces document ownership for user profiles.
      */
     match /users/{userId} {
       function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
+        return request.auth.uid == userId;
       }
       function isSignedIn() {
         return request.auth != null;
       }
-      allow get, list: if isOwner(userId);
-      allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update, delete: if isOwner(userId);
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isSignedIn() && isOwner(userId) && resource.data.id == userId;
+      allow delete: if isSignedIn() && isOwner(userId) && resource.data.id == userId;
     }
 
     /**
-     * @description Allows access to orders associated with a specific user.
+     * @description Allows users to manage their own orders.
      * @path /users/{userId}/orders/{orderId}
-     * @allow (create) - Authenticated user creates an order under their own profile.
-     * @allow (get, list, update, delete) - Authenticated user accesses their own orders.
-     * @deny (create, get, list, update, delete) - Any other user attempts to access these orders.
-     * @principle Enforces document ownership for all operations.
+     * @allow (create) User with matching ID can create an order: request.auth.uid == userId
+     * @allow (get, update, delete) Signed-in user can access their own order: request.auth.uid == userId
+     * @deny (create, update, delete) Signed-in user cannot access another user's order: request.auth.uid != userId
+     * @principle Enforces document ownership for orders.
      */
     match /users/{userId}/orders/{orderId} {
       function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
+        return request.auth.uid == userId;
       }
       function isSignedIn() {
         return request.auth != null;
       }
-      allow get, list: if isOwner(userId);
-      allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update, delete: if isOwner(userId);
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if isSignedIn() && isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId);
+      allow delete: if isSignedIn() && isOwner(userId);
     }
 
     /**
-     * @description Allows access to notas associated with a specific order.
+     * @description Allows users to manage their own notas.
      * @path /users/{userId}/orders/{orderId}/notas/{notaId}
-     * @allow (create) - Authenticated user creates a nota under their own order.
-     * @allow (get, list, update, delete) - Authenticated user accesses their own notas.
-     * @deny (create, get, list, update, delete) - Any other user attempts to access these notas.
-     * @principle Enforces document ownership for all operations.
+     * @allow (create) User with matching ID can create a nota: request.auth.uid == userId
+     * @allow (get, update, delete) Signed-in user can access their own nota: request.auth.uid == userId
+     * @deny (create, update, delete) Signed-in user cannot access another user's nota: request.auth.uid != userId
+     * @principle Enforces document ownership for notas.
      */
     match /users/{userId}/orders/{orderId}/notas/{notaId} {
       function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
+        return request.auth.uid == userId;
       }
       function isSignedIn() {
         return request.auth != null;
       }
-      allow get, list: if isOwner(userId);
-      allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update, delete: if isOwner(userId);
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if isSignedIn() && isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId);
+      allow delete: if isSignedIn() && isOwner(userId);
     }
 
     /**
-     * @description Allows public read access to Jastip events.
+     * @description Allows public read access to events. Only authenticated users can create, update or delete events.
      * @path /events/{eventId}
-     * @allow (get, list) - Any user (or no user) can read event details.
-     * @deny (create, update, delete) - Only authenticated users can create, update, or delete events (TODO: add admin validation if required).
-     * @principle Public read access with authenticated writes.
+     * @allow (get, list) Any user can read events: true
+     * @allow (create, update, delete) Only authenticated users can create, update or delete events: request.auth != null
+     * @deny (create, update, delete) Unauthenticated users cannot create, update or delete events: request.auth == null
+     * @principle Allows public read access to events.
      */
     match /events/{eventId} {
       function isSignedIn() {
         return request.auth != null;
       }
-      allow get, list: if true;
-      allow create, update, delete: if isSignedIn(); // TODO: Add owner validation or admin role if required
+      allow get: if true;
+      allow list: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
   }
 }
