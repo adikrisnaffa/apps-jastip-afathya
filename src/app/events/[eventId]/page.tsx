@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import OrderList from "@/components/dashboard/OrderList";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, ArrowLeft } from "lucide-react";
@@ -9,14 +10,17 @@ import { doc } from "firebase/firestore";
 import { useFirestore, useMemoFirebase } from "@/firebase/provider";
 import type { JastipEvent } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useParams } from "next/navigation";
 
-export default function EventDetailPage({ params }: { params: { eventId: string } }) {
+export default function EventDetailPage() {
+  const params = useParams();
+  const eventId = params.eventId as string;
   const firestore = useFirestore();
   
   const eventRef = useMemoFirebase(() => {
-      if (!firestore || !params.eventId) return null;
-      return doc(firestore, "events", params.eventId);
-  }, [firestore, params.eventId]);
+      if (!firestore || !eventId) return null;
+      return doc(firestore, "events", eventId);
+  }, [firestore, eventId]);
 
   const { data: event, isLoading } = useDoc<JastipEvent>(eventRef);
   const eventDate = event?.date?.toDate();
