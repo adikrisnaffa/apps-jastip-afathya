@@ -1,0 +1,199 @@
+{
+  "entities": {
+    "Order": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Order",
+      "type": "object",
+      "description": "Represents a customer's JasTip (jasa titip) order.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Order entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Order). The ID of the user who placed the order."
+        },
+        "itemDescription": {
+          "type": "string",
+          "description": "Description of the item being ordered."
+        },
+        "quantity": {
+          "type": "number",
+          "description": "Quantity of the item being ordered."
+        },
+        "specialRequests": {
+          "type": "string",
+          "description": "Any special requests or instructions for the order."
+        },
+        "orderDate": {
+          "type": "string",
+          "description": "The date and time the order was placed.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the order (e.g., placed, processing, completed)."
+        },
+        "totalCost": {
+          "type": "number",
+          "description": "The total cost of the order."
+        },
+        "notaId": {
+          "type": "string",
+          "description": "Reference to Nota. (Relationship: Nota 1:1 Order). The ID of the generated nota/receipt for the order."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "itemDescription",
+        "quantity",
+        "orderDate",
+        "status",
+        "totalCost"
+      ]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the JasTip Express application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The user's full name."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address.",
+          "format": "email"
+        },
+        "phone": {
+          "type": "string",
+          "description": "The user's phone number."
+        },
+        "address": {
+          "type": "string",
+          "description": "The user's address."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "email"
+      ]
+    },
+    "Nota": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Nota",
+      "type": "object",
+      "description": "Represents a formatted receipt (nota) for an order.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Nota entity."
+        },
+        "orderId": {
+          "type": "string",
+          "description": "Reference to Order. (Relationship: Order 1:1 Nota). The ID of the order this nota is for."
+        },
+        "notaDate": {
+          "type": "string",
+          "description": "The date the nota was generated.",
+          "format": "date-time"
+        },
+        "items": {
+          "type": "string",
+          "description": "Itemized list of products in order",
+          "format": "string"
+        },
+        "totalAmount": {
+          "type": "number",
+          "description": "The total amount due, matching the Order's totalCost."
+        }
+      },
+      "required": [
+        "id",
+        "orderId",
+        "notaDate",
+        "totalAmount"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile information. Path-based ownership enables secure access rules based on {userId}.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/orders/{orderId}",
+        "definition": {
+          "entityName": "Order",
+          "schema": {
+            "$ref": "#/backend/entities/Order"
+          },
+          "description": "Stores orders associated with a specific user. Path-based ownership enables secure access rules based on {userId}. Includes userId to support listing orders by user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user who placed the order."
+            },
+            {
+              "name": "orderId",
+              "description": "The unique identifier for the order."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/orders/{orderId}/notas/{notaId}",
+        "definition": {
+          "entityName": "Nota",
+          "schema": {
+            "$ref": "#/backend/entities/Nota"
+          },
+          "description": "Stores notas/receipts associated with a specific order.  Path-based ownership enables secure access rules based on {userId} and {orderId}.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user who placed the order."
+            },
+            {
+              "name": "orderId",
+              "description": "The unique identifier for the order."
+            },
+            {
+              "name": "notaId",
+              "description": "The unique identifier for the nota."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to provide a secure and scalable solution for the JasTip Express application, prioritizing Authorization Independence, Clarity of Intent, and adherence to DBAC principles.  The structure uses path-based ownership for user-related data and explicitly defines the schemas to ensure data clarity and predictability.\n\n**Authorization Independence:**\n\n*   The structure leverages path-based ownership for entities related to the user. For example, Orders are stored under `/users/{userId}/orders/{orderId}`. This eliminates the need for `get()` calls in security rules to determine ownership, as access control can be directly enforced based on the path.\n\n**QAPs (Rules are not Filters):**\n\n*   The use of structural segregation, with orders stored directly under user documents (`/users/{userId}/orders/{orderId}`), ensures that listing operations can be securely performed based on the `userId` without needing to filter based on document content. Only the user has read access to their specific `/users/{userId}/orders` collection.\n\n*   The Nota subcollection follows the same pattern, ensuring secure access to receipt data based on the parent Order document and user ownership."
+  }
+}

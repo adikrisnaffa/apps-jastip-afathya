@@ -1,0 +1,103 @@
+/**
+ * @fileoverview Firestore Security Rules for JasTip Express application.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model for all data. Each user has full control over their own profile and associated orders and notas.
+ *
+ * Data Structure:
+ * The database is structured with user profiles at the root level (`/users/{userId}`), and user-specific data (orders, notas) nested under each user. This structure enables path-based authorization.
+ *
+ * Key Security Decisions:
+ * - User listing is disallowed to protect privacy.
+ * - All write operations are strictly controlled to ensure that only the owner can modify their data.
+ * - The rules are designed for Authorization Independence, avoiding the need for costly `get()` calls.
+ *
+ * Denormalization for Authorization:
+ * The Firestore structure denormalizes user ownership by nesting all user-related data under the `/users/{userId}` path. This enables fast, path-based authorization checks without needing to read other documents. For example, order documents are located at `/users/{userId}/orders/{orderId}` enabling order access control based solely on the path.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Protects the root database.
+     * @path /databases/{database}/documents
+     * @allow (get) Anyone can attempt to access the root, but it will return a "Not Found" error.
+     * @deny (list) Listing the root is forbidden.
+     * @principle Prevents unauthorized listing of the entire database.
+     */
+    match /{document=**} {
+      allow get: if false;
+      allow list: if false;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Manages user profile information.
+     * @path /users/{userId}
+     * @allow (create) A user can create their own profile if their auth UID matches the {userId}.
+     * @allow (get) A user can read their own profile.
+     * @deny (create) A user cannot create a profile with an ID that doesn't match their auth UID.
+     * @deny (update) A user cannot update another user's profile.
+     * @deny (delete) A user cannot delete another user's profile.
+     * @principle Enforces document ownership and restricts access to a user's own data.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Manages orders associated with a specific user.
+     * @path /users/{userId}/orders/{orderId}
+     * @allow (create) A user can create an order under their own user ID.
+     * @allow (get) A user can read their own orders.
+     * @deny (create) A user cannot create an order under another user's ID.
+     * @deny (update) A user cannot update another user's order.
+     * @deny (delete) A user cannot delete another user's order.
+     * @principle Enforces document ownership for orders and restricts access to a user's own orders.
+     */
+    match /users/{userId}/orders/{orderId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Manages notas/receipts associated with a specific order.
+     * @path /users/{userId}/orders/{orderId}/notas/{notaId}
+     * @allow (create) A user can create a nota under their own order.
+     * @allow (get) A user can read their own notas.
+     * @deny (create) A user cannot create a nota under another user's order.
+     * @deny (update) A user cannot update another user's nota.
+     * @deny (delete) A user cannot delete another user's nota.
+     * @principle Enforces document ownership for notas and restricts access to a user's own notas.
+     */
+    match /users/{userId}/orders/{orderId}/notas/{notaId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+    }
+  }
+}
