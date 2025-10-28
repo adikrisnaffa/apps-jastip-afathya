@@ -1,11 +1,36 @@
+"use client";
+
 import OrderList from "@/components/dashboard/OrderList";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { mockEvents } from "@/lib/mock-data";
+import { useDoc } from "@/firebase";
+import { doc } from "firebase/firestore";
+import { useFirestore, useMemoFirebase } from "@/firebase/provider";
+import type { JastipEvent } from "@/lib/types";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function EventDetailPage({ params }: { params: { eventId: string } }) {
-  const event = mockEvents.find((e) => e.id === params.eventId);
+  const firestore = useFirestore();
+  
+  const eventRef = useMemoFirebase(() => {
+      if (!firestore || !params.eventId) return null;
+      return doc(firestore, "events", params.eventId);
+  }, [firestore, params.eventId]);
+
+  const { data: event, isLoading } = useDoc<JastipEvent>(eventRef);
+  const eventDate = event?.date?.toDate();
+
+  if (isLoading) {
+    return (
+        <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8">
+            <Skeleton className="h-8 w-32 mb-4" />
+            <Skeleton className="h-10 w-3/4 mb-2" />
+            <Skeleton className="h-6 w-1/2 mb-1" />
+            <Skeleton className="h-5 w-1/4" />
+        </div>
+    )
+  }
 
   if (!event) {
     return (
@@ -31,7 +56,7 @@ export default function EventDetailPage({ params }: { params: { eventId: string 
         </Button>
         <h1 className="text-4xl font-bold font-headline text-foreground">{event.name}</h1>
         <p className="text-muted-foreground mt-2">{event.description}</p>
-        <p className="text-sm text-primary font-semibold mt-1">{event.date.toLocaleDateString()}</p>
+        <p className="text-sm text-primary font-semibold mt-1">{eventDate ? eventDate.toLocaleDateString() : 'Date not set'}</p>
       </div>
       
       <div className="flex items-center justify-between mb-8 flex-wrap gap-4">

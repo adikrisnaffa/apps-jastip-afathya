@@ -12,6 +12,8 @@ type EventCardProps = {
 };
 
 export default function EventCard({ event }: EventCardProps) {
+  const eventDate = event.date?.toDate();
+
   return (
     <Card className="flex flex-col transform hover:-translate-y-1 transition-transform duration-300 ease-in-out shadow-lg hover:shadow-2xl overflow-hidden">
         <CardHeader className="p-0">
@@ -29,7 +31,7 @@ export default function EventCard({ event }: EventCardProps) {
         <CardTitle className="font-headline text-xl mb-2">{event.name}</CardTitle>
         <div className="flex items-center text-sm text-muted-foreground mb-4">
             <Calendar className="mr-2 h-4 w-4" />
-            <span>{event.date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+            <span>{eventDate ? eventDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Date not set'}</span>
         </div>
         <CardDescription className="flex-grow">{event.description}</CardDescription>
       </div>

@@ -1,3 +1,5 @@
+import type { Timestamp } from "firebase/firestore";
+
 export type OrderStatus =
   | "Placed"
   | "Processing"
@@ -20,7 +22,7 @@ export type JastipEvent = {
   id: string;
   name: string;
   description: string;
-  date: Date;
+  date: Timestamp;
   imageUrl: string;
   imageHint: string;
 };
