@@ -1,20 +1,63 @@
 'use client';
 
-import React, { useMemo, type ReactNode, useEffect } from 'react';
+import React, { useMemo, type ReactNode, useEffect, useState } from 'react';
 import { FirebaseProvider, useAuth } from '@/firebase/provider';
 import { initializeFirebase } from '@/firebase';
-import { signInAnonymously } from 'firebase/auth';
+import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
+import { Skeleton } from '@/components/ui/skeleton';
 
 function AuthGate({ children }: { children: ReactNode }) {
   const auth = useAuth();
+  const [isAuthReady, setIsAuthReady] = useState(false);
 
   useEffect(() => {
     if (auth) {
-      signInAnonymously(auth).catch((error) => {
-        console.error("Anonymous sign-in failed", error);
-      });
+      // First, attempt to sign in anonymously.
+      signInAnonymously(auth)
+        .then(() => {
+          // After attempting sign-in, we use onAuthStateChanged 
+          // to know when Firebase has a confirmed user state.
+          const unsubscribe = onAuthStateChanged(auth, (user) => {
+            // As soon as we get any user state back (null or a user object),
+            // we know auth is ready.
+            setIsAuthReady(true);
+            unsubscribe(); // We only need this for the initial check.
+          });
+        })
+        .catch((error) => {
+          console.error("Anonymous sign-in failed during init", error);
+          // Even if sign-in fails, we're "ready" to show the app,
+          // though subsequent data fetches might fail.
+          setIsAuthReady(true); 
+        });
     }
   }, [auth]);
+
+  if (!isAuthReady) {
+    return (
+        <div className="flex flex-col min-h-screen">
+             <header className="bg-card shadow-md sticky top-0 z-40">
+                <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex items-center justify-between h-16">
+                        <Skeleton className="h-8 w-48" />
+                        <Skeleton className="h-8 w-24" />
+                    </div>
+                </div>
+            </header>
+            <main className="flex-grow container mx-auto py-8 px-4 sm:px-6 lg:px-8">
+                <div className="text-center mb-12">
+                    <Skeleton className="h-10 w-3/4 mx-auto" />
+                    <Skeleton className="h-4 w-1/2 mx-auto mt-4" />
+                </div>
+                <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+                    <Skeleton className="h-96 w-full" />
+                    <Skeleton className="h-96 w-full" />
+                    <Skeleton className="h-96 w-full" />
+                </div>
+            </main>
+        </div>
+    );
+  }
 
   return <>{children}</>;
 }
