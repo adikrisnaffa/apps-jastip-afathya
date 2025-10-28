@@ -4,10 +4,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  getAuth,
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
-  ConfirmationResult,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
 } from "firebase/auth";
 import { useAuth, useUser } from "@/firebase/provider";
 import { Button } from "@/components/ui/button";
@@ -21,178 +19,155 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Phone, LogIn } from "lucide-react";
-
-declare global {
-  interface Window {
-    recaptchaVerifier?: RecaptchaVerifier;
-    confirmationResult?: ConfirmationResult;
-  }
-}
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Mail, Key, LogIn, UserPlus } from "lucide-react";
 
 export default function LoginPage() {
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [verificationCode, setVerificationCode] = useState("");
-  const [step, setStep] = useState<"phone" | "code">("phone");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
   const auth = useAuth();
   const { user } = useUser();
   const { toast } = useToast();
 
-  if(user) {
+  if (user) {
     router.push('/');
   }
 
-  const setupRecaptcha = () => {
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!auth) return;
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(
-        auth,
-        "recaptcha-container",
-        {
-          size: "invisible",
-          callback: (response: any) => {
-            // reCAPTCHA solved, allow signInWithPhoneNumber.
-            console.log("reCAPTCHA solved");
-          },
-        }
-      );
-    }
-  };
-
-  const handleSendCode = async () => {
-    if (!auth) {
-        toast({
-            title: "Error",
-            description: "Authentication service not available.",
-            variant: "destructive",
-        });
-        return;
-    }
-    setupRecaptcha();
-    const appVerifier = window.recaptchaVerifier;
-    if (!appVerifier) {
-        toast({
-            title: "Error",
-            description: "reCAPTCHA verifier not initialized.",
-            variant: "destructive",
-        });
-        return;
-    }
-
+    setIsSubmitting(true);
     try {
-      setIsSubmitting(true);
-      const confirmationResult = await signInWithPhoneNumber(
-        auth,
-        phoneNumber,
-        appVerifier
-      );
-      window.confirmationResult = confirmationResult;
-      setStep("code");
+      await createUserWithEmailAndPassword(auth, email, password);
       toast({
-        title: "Verification Code Sent",
-        description: `A code has been sent to ${phoneNumber}.`,
+        title: "Account Created!",
+        description: "You have been successfully signed up and logged in.",
       });
+      router.push("/");
     } catch (error: any) {
-      console.error("SMS not sent", error);
+      console.error("Sign up failed", error);
       toast({
-        title: "Error Sending Code",
-        description: error.message || "Could not send verification code.",
+        title: "Sign Up Failed",
+        description: error.message || "Could not create your account.",
         variant: "destructive",
       });
     } finally {
-        setIsSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
-  const handleVerifyCode = async () => {
-    const confirmationResult = window.confirmationResult;
-    if (!confirmationResult) {
-        toast({
-            title: "Error",
-            description: "No confirmation result found. Please try sending the code again.",
-            variant: "destructive",
-        });
-        return;
-    }
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!auth) return;
+    setIsSubmitting(true);
     try {
-        setIsSubmitting(true);
-      await confirmationResult.confirm(verificationCode);
+      await signInWithEmailAndPassword(auth, email, password);
       toast({
         title: "Login Successful!",
         description: "You have been successfully logged in.",
       });
       router.push("/");
     } catch (error: any) {
-      console.error("Verification failed", error);
+      console.error("Sign in failed", error);
       toast({
-        title: "Verification Failed",
-        description: error.message || "The verification code is incorrect.",
+        title: "Sign In Failed",
+        description: error.message || "Invalid email or password.",
         variant: "destructive",
       });
     } finally {
-        setIsSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
-
   return (
     <div className="container mx-auto flex items-center justify-center min-h-[calc(100vh-10rem)] py-12">
-      <div id="recaptcha-container"></div>
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-headline text-primary">
-            Welcome Back!
+            Welcome!
           </CardTitle>
           <CardDescription>
-            {step === 'phone' ? 'Enter your phone number to sign in.' : 'Enter the verification code.'}
+            Sign in or create an account to continue
           </CardDescription>
         </CardHeader>
-
-        {step === 'phone' ? (
-             <form onSubmit={(e) => { e.preventDefault(); handleSendCode(); }}>
-                <CardContent className="space-y-4">
-                    <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                        <Input
-                            type="tel"
-                            placeholder="+6281234567890"
-                            value={phoneNumber}
-                            onChange={(e) => setPhoneNumber(e.target.value)}
-                            className="pl-10"
-                            required
-                        />
-                    </div>
-                </CardContent>
-                <CardFooter>
-                    <Button type="submit" className="w-full" disabled={isSubmitting}>
-                        <LogIn className="mr-2 h-5 w-5" />
-                        {isSubmitting ? "Sending Code..." : "Send Verification Code"}
-                    </Button>
-                </CardFooter>
-            </form>
-        ) : (
-            <form onSubmit={(e) => { e.preventDefault(); handleVerifyCode(); }}>
-                <CardContent className="space-y-4">
-                     <Input
-                        type="text"
-                        placeholder="123456"
-                        value={verificationCode}
-                        onChange={(e) => setVerificationCode(e.target.value)}
-                        required
+        <CardContent>
+          <Tabs defaultValue="signin" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="signin">Sign In</TabsTrigger>
+              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+            </TabsList>
+            <TabsContent value="signin">
+              <form onSubmit={handleSignIn}>
+                <div className="space-y-4 py-4">
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input
+                      type="email"
+                      placeholder="email@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="pl-10"
+                      required
                     />
-                </CardContent>
-                <CardFooter className="flex flex-col gap-4">
-                    <Button type="submit" className="w-full" disabled={isSubmitting}>
-                        {isSubmitting ? "Verifying..." : "Verify and Sign In"}
-                    </Button>
-                    <Button variant="link" onClick={() => setStep('phone')}>
-                        Back to phone number entry
-                    </Button>
+                  </div>
+                  <div className="relative">
+                    <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input
+                      type="password"
+                      placeholder="Password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="pl-10"
+                      required
+                    />
+                  </div>
+                </div>
+                <CardFooter className="p-0">
+                  <Button type="submit" className="w-full" disabled={isSubmitting}>
+                    <LogIn className="mr-2 h-5 w-5" />
+                    {isSubmitting ? "Signing In..." : "Sign In"}
+                  </Button>
                 </CardFooter>
-            </form>
-        )}
+              </form>
+            </TabsContent>
+            <TabsContent value="signup">
+               <form onSubmit={handleSignUp}>
+                <div className="space-y-4 py-4">
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input
+                      type="email"
+                      placeholder="email@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="pl-10"
+                      required
+                    />
+                  </div>
+                  <div className="relative">
+                    <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input
+                      type="password"
+                      placeholder="Password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="pl-10"
+                      required
+                    />
+                  </div>
+                </div>
+                <CardFooter className="p-0">
+                  <Button type="submit" className="w-full" disabled={isSubmitting}>
+                    <UserPlus className="mr-2 h-5 w-5" />
+                    {isSubmitting ? "Creating Account..." : "Sign Up"}
+                  </Button>
+                </CardFooter>
+              </form>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
       </Card>
     </div>
   );
