@@ -1,14 +1,18 @@
 "use client";
 
-import { useCollection } from "@/firebase";
+import { useCollection, useUser } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
 import { useFirestore, useMemoFirebase } from "@/firebase/provider";
 import EventCard from "@/components/events/EventCard";
 import type { JastipEvent } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { PlusCircle } from "lucide-react";
 
 export default function Home() {
   const firestore = useFirestore();
+  const { user } = useUser();
 
   const eventsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -19,7 +23,7 @@ export default function Home() {
 
   return (
     <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8">
-      <div className="text-center mb-12">
+      <div className="text-center mb-8">
         <h1 className="text-4xl font-bold font-headline text-primary">
           Upcoming Jastip Events
         </h1>
@@ -27,6 +31,17 @@ export default function Home() {
           Choose an event to start your shopping journey.
         </p>
       </div>
+
+      {user && (
+          <div className="text-center mb-12">
+            <Button asChild>
+                <Link href="/events/new">
+                    <PlusCircle className="mr-2 h-5 w-5" />
+                    Create New Event
+                </Link>
+            </Button>
+          </div>
+      )}
 
       {isLoading && (
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
@@ -45,7 +60,7 @@ export default function Home() {
       )}
 
       {!isLoading && !events?.length && (
-        <div className="text-center text-muted-foreground">
+        <div className="text-center text-muted-foreground mt-8">
           <p>No events found. Create a new one to get started!</p>
         </div>
       )}

@@ -1,22 +1,3 @@
-/**
- * @fileOverview Security rules for the JasTip Express application.
- *
- * Core Philosophy:
- * This ruleset enforces a strict user-ownership model for user profiles,
- * orders, and notas, ensuring that users can only access their own data.
- * Jastip events are publicly readable but writable by no one (in this prototype).
- *
- * Data Structure:
- * - /users/{userId}: Stores user profile information.
- * - /users/{userId}/orders/{orderId}: Stores orders associated with a specific user.
- * - /users/{userId}/orders/{orderId}/notas/{notaId}: Stores notas associated with a specific order.
- * - /events/{eventId}: Stores publicly available Jastip event information.
- *
- * Key Security Decisions:
- * - User data is strictly private and accessible only to the owning user.
- * - Listing all users is disallowed.
- * - Jastip events are publicly readable but not writable in this prototype.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -24,10 +5,12 @@ service cloud.firestore {
     /**
      * @description Controls access to user profile information.
      * @path /users/{userId}
-     * @allow (create) - User with ID 'user123' can create their profile if authenticated as 'user123'.
-     * @allow (get, update, delete, list) - User with ID 'user123' can get, update, or delete their profile if authenticated as 'user123'.
-     * @deny (create) - User with ID 'user456' cannot create a profile with ID 'user123'.
-     * @deny (get, update, delete) - User with ID 'user456' cannot access profile with ID 'user123'.
+     * @allow (create) User with ID 'user123' can create their profile.
+     * @allow (get) User with ID 'user123' can read their profile.
+     * @allow (update) User with ID 'user123' can update their profile.
+     * @allow (delete) User with ID 'user123' can delete their profile.
+     * @deny (create) User with ID 'user456' cannot create a profile with ID 'user123'.
+     * @deny (get) User with ID 'user456' cannot read the profile of user 'user123'.
      * @principle Enforces document ownership for all operations.
      */
     match /users/{userId} {
@@ -35,67 +18,87 @@ service cloud.firestore {
         return request.auth != null && request.auth.uid == userId;
       }
 
-      allow get: if isOwner(userId);
-      allow list: if false; // No listing of all users.
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isOwner(userId) && resource.data.id == userId;
-      allow delete: if isOwner(userId) && resource.data.id == userId;
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId);
+      allow delete: if isSignedIn() && isOwner(userId);
     }
 
     /**
      * @description Controls access to orders associated with a specific user.
      * @path /users/{userId}/orders/{orderId}
-     * @allow (create) - User with ID 'user123' can create an order under their profile.
-     * @allow (get, update, delete, list) - User with ID 'user123' can get, update, delete, or list orders under their profile.
-     * @deny (create) - User with ID 'user456' cannot create an order under user 'user123'.
-     * @deny (get, update, delete) - User with ID 'user456' cannot access orders under user 'user123'.
-     * @principle Enforces document ownership and validates relational integrity.
+     * @allow (create) User with ID 'user123' can create an order under their profile.
+     * @allow (get) User with ID 'user123' can read an order under their profile.
+     * @allow (update) User with ID 'user123' can update an order under their profile.
+     * @allow (delete) User with ID 'user123' can delete an order under their profile.
+     * @deny (create) User with ID 'user456' cannot create an order under the profile of user 'user123'.
+     * @deny (get) User with ID 'user456' cannot read an order under the profile of user 'user123'.
+     * @principle Enforces document ownership for all operations.
      */
     match /users/{userId}/orders/{orderId} {
       function isOwner(userId) {
         return request.auth != null && request.auth.uid == userId;
       }
 
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId);
+      allow delete: if isSignedIn() && isOwner(userId);
     }
 
     /**
-     * @description Controls access to notas associated with a specific order.
+     * @description Controls access to notas associated with a specific order and user.
      * @path /users/{userId}/orders/{orderId}/notas/{notaId}
-     * @allow (create) - User with ID 'user123' can create a nota under their order.
-     * @allow (get, update, delete, list) - User with ID 'user123' can get, update, delete, or list notas under their order.
-     * @deny (create) - User with ID 'user456' cannot create a nota under user 'user123'.
-     * @deny (get, update, delete) - User with ID 'user456' cannot access notas under user 'user123'.
-     * @principle Enforces document ownership and validates relational integrity.
+     * @allow (create) User with ID 'user123' can create a nota under their order.
+     * @allow (get) User with ID 'user123' can read a nota under their order.
+     * @allow (update) User with ID 'user123' can update a nota under their order.
+     * @allow (delete) User with ID 'user123' can delete a nota under their order.
+     * @deny (create) User with ID 'user456' cannot create a nota under the order of user 'user123'.
+     * @deny (get) User with ID 'user456' cannot read a nota under the order of user 'user123'.
+     * @principle Enforces document ownership for all operations.
      */
     match /users/{userId}/orders/{orderId}/notas/{notaId} {
       function isOwner(userId) {
         return request.auth != null && request.auth.uid == userId;
       }
 
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId);
+      allow delete: if isSignedIn() && isOwner(userId);
     }
 
     /**
-     * @description Controls access to Jastip event information.
+     * @description Controls access to Jastip events.
      * @path /events/{eventId}
-     * @allow (get, list) - Any user can read Jastip event information.
-     * @deny (create, update, delete) - No one can create, update, or delete events in this prototype.
-     * @principle Allows public read access with owner-only writes (currently disabled).
+     * @allow (get) Any user can read any event.
+     * @allow (list) Any user can list events.
+     * @deny (create) No one can create events. // TODO: Implement admin role for event creation
+     * @deny (update) No one can update events. // TODO: Implement admin role for event updates
+     * @deny (delete) No one can delete events. // TODO: Implement admin role for event deletion
+     * @principle Allows public read access and restricts write access.
      */
     match /events/{eventId} {
-      allow get, list: if true;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow get: if true;
+      allow list: if true;
+      allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
   }
 }
