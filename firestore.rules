@@ -1,155 +1,114 @@
 /**
- * @fileoverview Firestore Security Rules for JasTip Express application.
+ * @fileOverview Firestore Security Rules for JasTip Express application.
  *
  * Core Philosophy:
  * This ruleset enforces a strict user-ownership model for user profiles, orders, and notas,
- * ensuring that users can only access their own data. Jastip Events are publicly readable.
+ * ensuring that users can only access their own data. Jastip events are publicly readable.
  *
  * Data Structure:
  * - /users/{userId}: Stores user profiles.
- * - /users/{userId}/orders/{orderId}: Stores orders associated with a specific user.
- * - /users/{userId}/orders/{orderId}/notas/{notaId}: Stores notas (receipts) associated with an order.
- * - /events/{eventId}: Stores information about Jastip events (publicly readable).
+ * - /users/{userId}/orders/{orderId}: Stores orders associated with a user.
+ * - /users/{userId}/orders/{orderId}/notas/{notaId}: Stores notas/receipts for an order.
+ * - /events/{eventId}: Stores Jastip event information (publicly readable).
  *
  * Key Security Decisions:
- * - User data (profiles, orders, notas) is strictly controlled via path-based ownership.
- * - Jastip events are publicly readable but writes are not allowed.
- * - The rules prioritize authorization independence, avoiding `get()` calls for ownership checks.
- * - Data validation is limited to relational integrity and authorization-critical fields during `create` operations.
- * - Listing operations are secured based on path-based ownership, preventing unauthorized data listing.
- * - No write operations are allowed on the `events` collection.
+ * - User data is private and only accessible to the owner.
+ * - Orders and Notas are nested under users and are only accessible to the owning user.
+ * - Jastip events are publicly readable to allow for discovery.
+ * - Listing all users is disallowed.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to user profile information.
+     * @description Allows access to user profile information.
      * @path /users/{userId}
-     * @allow (create) - User with ID 'user123' can create their own profile.
-     *    Request: { "auth": { "uid": "user123" }, "resource": { "data": { "id": "user123", "name": "John Doe", "email": "john.doe@example.com" } } }
-     * @allow (get) - User with ID 'user123' can read their own profile.
-     *    Request: { "auth": { "uid": "user123" }, "method": "get", "path": "/databases/(default)/documents/users/user123" }
-     * @allow (update) - User with ID 'user123' can update their own profile.
-     *    Request: { "auth": { "uid": "user123" }, "resource": { "data": { "id": "user123", "name": "Updated Name", "email": "john.doe@example.com" } } }
-     * @allow (delete) - User with ID 'user123' can delete their own profile.
-     *    Request: { "auth": { "uid": "user123" }, "method": "delete", "path": "/databases/(default)/documents/users/user123" }
-     * @deny (create) - User with ID 'user456' cannot create a profile with ID 'user123'.
-     *    Request: { "auth": { "uid": "user456" }, "resource": { "data": { "id": "user123", "name": "John Doe", "email": "john.doe@example.com" } } }
-     * @deny (get) - User with ID 'user456' cannot read profile with ID 'user123'.
-     *    Request: { "auth": { "uid": "user456" }, "method": "get", "path": "/databases/(default)/documents/users/user123" }
-     * @deny (update) - User with ID 'user456' cannot update profile with ID 'user123'.
-     *    Request: { "auth": { "uid": "user456" }, "resource": { "data": { "id": "user123", "name": "Updated Name", "email": "john.doe@example.com" } } }
-     * @deny (delete) - User with ID 'user456' cannot delete profile with ID 'user123'.
-     *    Request: { "auth": { "uid": "user456" }, "method": "delete", "path": "/databases/(default)/documents/users/user123" }
-     * @principle Enforces document ownership for all operations on user profiles.
+     * @allow (create) User with ID 'user123' can create their profile.
+     * @deny (create) User with ID 'user456' cannot create a profile with ID 'user123'.
+     * @allow (get, update, delete) User with ID 'user123' can read, update, and delete their profile.
+     * @deny (get, update, delete) User with ID 'user456' cannot read, update, or delete user 'user123's profile.
+     * @principle Enforces document ownership for writes, restricts access to a user's own data tree.
      */
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false; //No listing of all users.
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
 
+      function isExistingOwner(userId) {
+          return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if false;
       allow create: if isOwner(userId) && request.resource.data.id == userId;
       allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Controls access to orders associated with a specific user.
+     * @description Allows access to orders associated with a specific user.
      * @path /users/{userId}/orders/{orderId}
-     * @allow (create) - User with ID 'user123' can create an order in their own path.
-     *    Request: { "auth": { "uid": "user123" }, "resource": { "data": { "userId": "user123", "itemDescription": "Laptop", "quantity": 1, "orderDate": "2024-01-01T12:00:00Z", "status": "placed", "totalCost": 1200 } } }
-     * @allow (get) - User with ID 'user123' can read their own order.
-     *    Request: { "auth": { "uid": "user123" }, "method": "get", "path": "/databases/(default)/documents/users/user123/orders/order1" }
-     * @allow (update) - User with ID 'user123' can update their own order.
-     *    Request: { "auth": { "uid": "user123" }, "resource": { "data": { "userId": "user123", "itemDescription": "Laptop", "quantity": 1, "orderDate": "2024-01-01T12:00:00Z", "status": "processing", "totalCost": 1200 } } }
-     * @allow (delete) - User with ID 'user123' can delete their own order.
-     *    Request: { "auth": { "uid": "user123" }, "method": "delete", "path": "/databases/(default)/documents/users/user123/orders/order1" }
-     * @deny (create) - User with ID 'user456' cannot create an order under user 'user123'.
-     *    Request: { "auth": { "uid": "user456" }, "resource": { "data": { "userId": "user123", "itemDescription": "Laptop", "quantity": 1, "orderDate": "2024-01-01T12:00:00Z", "status": "placed", "totalCost": 1200 } } }
-     * @deny (get) - User with ID 'user456' cannot read order of user 'user123'.
-     *    Request: { "auth": { "uid": "user456" }, "method": "get", "path": "/databases/(default)/documents/users/user123/orders/order1" }
-     * @deny (update) - User with ID 'user456' cannot update order of user 'user123'.
-     *    Request: { "auth": { "uid": "user456" }, "resource": { "data": { "userId": "user123", "itemDescription": "Laptop", "quantity": 1, "orderDate": "2024-01-01T12:00:00Z", "status": "completed", "totalCost": 1200 } } }
-     * @deny (delete) - User with ID 'user456' cannot delete order of user 'user123'.
-     *    Request: { "auth": { "uid": "user456" }, "method": "delete", "path": "/databases/(default)/documents/users/user123/orders/order1" }
-     * @principle Enforces document ownership for all operations on orders.
+     * @allow (create) User with ID 'user123' can create an order under their profile.
+     * @deny (create) User with ID 'user456' cannot create an order under user 'user123's profile.
+     * @allow (get, update, delete) User with ID 'user123' can read, update, and delete their orders.
+     * @deny (get, update, delete) User with ID 'user456' cannot read, update, or delete user 'user123's orders.
+     * @principle Enforces document ownership for writes, restricts access to a user's own data tree.
      */
     match /users/{userId}/orders/{orderId} {
+       function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+       function isExistingOwner(userId) {
+          return isOwner(userId) && resource != null;
+      }
+
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
-
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
-      allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Controls access to notas (receipts) associated with a specific order.
-     * @path /users/{userId}/orders/{orderId}/notas/{notaId}
-     * @allow (create) - User with ID 'user123' can create a nota for their order.
-     *    Request: { "auth": { "uid": "user123" }, "resource": { "data": { "orderId": "order1", "notaDate": "2024-01-02T10:00:00Z", "totalAmount": 1200 } } }
-     * @allow (get) - User with ID 'user123' can read a nota for their order.
-     *    Request: { "auth": { "uid": "user123" }, "method": "get", "path": "/databases/(default)/documents/users/user123/orders/order1/notas/nota1" }
-     * @allow (update) - User with ID 'user123' can update a nota for their order.
-     *    Request: { "auth": { "uid": "user123" }, "resource": { "data": { "orderId": "order1", "notaDate": "2024-01-02T11:00:00Z", "totalAmount": 1200 } } }
-     * @allow (delete) - User with ID 'user123' can delete a nota for their order.
-     *    Request: { "auth": { "uid": "user123" }, "method": "delete", "path": "/databases/(default)/documents/users/user123/orders/order1/notas/nota1" }
-     * @deny (create) - User with ID 'user456' cannot create a nota for order of user 'user123'.
-     *    Request: { "auth": { "uid": "user456" }, "resource": { "data": { "orderId": "order1", "notaDate": "2024-01-02T10:00:00Z", "totalAmount": 1200 } } }
-     * @deny (get) - User with ID 'user456' cannot read a nota for order of user 'user123'.
-     *    Request: { "auth": { "uid": "user456" }, "method": "get", "path": "/databases/(default)/documents/users/user123/orders/order1/notas/nota1" }
-     * @deny (update) - User with ID 'user456' cannot update a nota for order of user 'user123'.
-     *    Request: { "auth": { "uid": "user456" }, "resource": { "data": { "orderId": "order1", "notaDate": "2024-01-02T11:00:00Z", "totalAmount": 1200 } } }
-     * @deny (delete) - User with ID 'user456' cannot delete a nota for order of user 'user123'.
-     *    Request: { "auth": { "uid": "user456" }, "method": "delete", "path": "/databases/(default)/documents/users/user123/orders/order1/notas/nota1" }
-     * @principle Enforces document ownership for all operations on notas.
-     */
-    match /users/{userId}/orders/{orderId}/notas/{notaId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-
       allow create: if isOwner(userId);
       allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Controls access to Jastip events (publicly readable).
+     * @description Allows access to notas associated with a specific order.
+     * @path /users/{userId}/orders/{orderId}/notas/{notaId}
+     * @allow (create) User with ID 'user123' can create a nota under their order.
+     * @deny (create) User with ID 'user456' cannot create a nota under user 'user123's order.
+     * @allow (get, update, delete) User with ID 'user123' can read, update, and delete their notas.
+     * @deny (get, update, delete) User with ID 'user456' cannot read, update, or delete user 'user123's notas.
+     * @principle Enforces document ownership for writes, restricts access to a user's own data tree.
+     */
+    match /users/{userId}/orders/{orderId}/notas/{notaId} {
+       function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+          return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Allows public read access to Jastip events. Write access is not granted in this prototype.
      * @path /events/{eventId}
-     * @allow (get) - Any user (signed in or not) can read an event.
-     *    Request: { "auth": null, "method": "get", "path": "/databases/(default)/documents/events/event1" }
-     * @allow (list) - Any user (signed in or not) can list events.
-     *    Request: { "auth": null, "method": "list", "path": "/databases/(default)/documents/events" }
-     * @deny (create) - No user can create an event via client.
-     *    Request: { "auth": { "uid": "user123" }, "resource": { "data": { "name": "Event 1", "description": "Description of event 1", "date": "2024-01-05T14:00:00Z", "imageUrl": "url" } } }
-     * @deny (update) - No user can update an event via client.
-     *    Request: { "auth": { "uid": "user123" }, "resource": { "data": { "name": "Updated Event Name", "description": "Description of event 1", "date": "2024-01-05T14:00:00Z", "imageUrl": "url" } } }
-     * @deny (delete) - No user can delete an event via client.
-     *    Request: { "auth": { "uid": "user123" }, "method": "delete", "path": "/databases/(default)/documents/events/event1" }
-     * @principle Allows public read access to events but prohibits all write operations.
+     * @allow (get, list) Any user (or no user) can read event details.
+     * @deny (create, update, delete) No one can create, update, or delete events.
+     * @principle Allows public read access while restricting write access.
      */
     match /events/{eventId} {
       allow get: if true;
       allow list: if true;
-
       allow create: if false;
       allow update: if false;
       allow delete: if false;
     }
-  }
-
-  // Helper function to determine if the request is from the owner of the resource.
-  function isOwner(userId) {
-    return isSignedIn() && request.auth.uid == userId;
-  }
-
-  // Helper function to determine if the user is signed in.
-  function isSignedIn() {
-    return request.auth != null;
-  }
-
-  // Helper function to determine if the request is from the existing owner of the resource.
-  function isExistingOwner(userId) {
-    return isOwner(userId) && resource != null;
   }
 }
