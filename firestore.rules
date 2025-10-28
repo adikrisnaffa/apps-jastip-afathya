@@ -1,119 +1,70 @@
 /**
- * @fileoverview Firestore Security Rules for JasTip Express application.
+ * @fileoverview Firestore Security Rules for JasTip Express.
  *
  * Core Philosophy:
- * This ruleset employs a strict path-based ownership model for user data,
- * ensuring that users can only access their own information. Top-level
- * collections like "events" are publicly readable but owner-writeable.
+ * This ruleset enforces a strict user-ownership model for user profiles, orders, and notas.
+ * Jastip events are publicly readable but require authentication for creation, updates, and deletion.
  *
  * Data Structure:
- * - /users/{userId}: Stores user profiles. Only the authenticated user can
- *   read/write their own profile.
- * - /users/{userId}/orders/{orderId}: Stores orders associated with a user.
- *   Only the authenticated user can read/write orders under their ID.
- * - /users/{userId}/orders/{orderId}/notas/{notaId}: Stores notas/receipts
- *   related to a specific order. Only the authenticated user can
- *   read/write notas under their ID and order.
- * - /events/{eventId}: Stores Jastip events. Publicly readable, but
- *   create/update/delete operations are restricted to the event owner.
+ * - /users/{userId}: Stores user profile information.
+ * - /users/{userId}/orders/{orderId}: Stores orders associated with a specific user.
+ * - /users/{userId}/orders/{orderId}/notas/{notaId}: Stores notas/receipts associated with an order.
+ * - /events/{eventId}: Stores information about Jastip events. These are intended to be publicly readable.
  *
  * Key Security Decisions:
- * - User listing is disallowed to protect user privacy.
- * - Public read access is granted to the "events" collection to allow
- *   unauthenticated users to view event information, but write access is
- *   restricted to the event owner.
+ * - User data (profiles, orders, notas) is only accessible to the owning user.
+ * - Listing all users is disallowed.
+ * - Jastip events are publicly readable, but only authenticated users can modify them.
  *
  * Denormalization for Authorization:
- *   The data structure is designed to avoid `get()` calls in security rules.
- *   For example, orders are stored under `/users/{userId}/orders/{orderId}`,
- *   allowing rules to directly check the `userId` in the path without
- *   needing to fetch the user document.
- *
- * Structural Segregation:
- *   Private user data (profiles, orders, notas) is stored under the
- *   `/users/{userId}` path, while public event data is stored in the top-level
- *   `/events` collection. This segregation allows for different security
- *   policies for private and public data.
+ * - The 'orders' and 'notas' collections are nested under the 'users' collection, allowing for path-based authorization.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Checks if the request is made by a signed-in user.
-     * @path N/A (Helper Function)
-     * @allow N/A (Helper Function)
-     * @deny N/A (Helper Function)
-     * @principle Requires the user to be authenticated.
-     */
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    /**
-     * @description Checks if the authenticated user ID matches the provided user ID.
-     * @path N/A (Helper Function)
-     * @allow N/A (Helper Function)
-     * @deny N/A (Helper Function)
-     * @principle Enforces user ownership based on the authenticated user ID.
-     */
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
-     /**
-      * @description Checks if the authenticated user is the existing owner of the resource.
-      * @path N/A (Helper Function)
-      * @allow N/A (Helper Function)
-      * @deny N/A (Helper Function)
-      * @principle Combines ownership check with existence check for update/delete operations.
-      */
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
-    }
-
-    /**
-     * @description Defines security rules for user documents.
+     * @description Secure access to user profile information. Only the user can read and write their own profile.
      * @path /users/{userId}
-     * @allow (create) User with ID 'user123' creates their own profile.
-     * @allow (get, update, delete) Authenticated user 'user123' accesses their own profile.
-     * @deny (create) User with ID 'user456' attempts to create a profile with ID 'user123'.
-     * @deny (get, update, delete) Authenticated user 'user456' attempts to access profile 'user123'.
+     * @allow (create) - User with ID 'user123' creates their own profile. request.auth.uid == 'user123'
+     * @allow (get, update, delete) - User with ID 'user123' reads/updates/deletes their own profile. request.auth.uid == 'user123'
+     * @deny (create) - User with ID 'user456' tries to create a profile for 'user123'. request.auth.uid == 'user456', userId == 'user123'
+     * @deny (get, update, delete) - User with ID 'user456' tries to read/update/delete the profile of 'user123'. request.auth.uid == 'user456', userId == 'user123'
      * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
      */
     match /users/{userId} {
       allow get: if isOwner(userId);
-      allow list: if false; // User listing is not allowed.
+      allow list: if false;
       allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow update: if isExistingOwner(userId) && resource.data.id == userId;
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Defines security rules for order documents within a user's profile.
+     * @description Secure access to orders associated with a specific user. Only the user can read and write their own orders.
      * @path /users/{userId}/orders/{orderId}
-     * @allow (create) User with ID 'user123' creates an order under their profile.
-     * @allow (get, update, delete) Authenticated user 'user123' accesses their own order.
-     * @deny (create) User with ID 'user456' attempts to create an order under user 'user123'.
-     * @deny (get, update, delete) Authenticated user 'user456' attempts to access order under user 'user123'.
-     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
+     * @allow (create) - User 'user123' creates an order under their profile. request.auth.uid == 'user123'
+     * @allow (get, update, delete) - User 'user123' reads/updates/deletes their own order. request.auth.uid == 'user123'
+     * @deny (create) - User 'user456' tries to create an order under 'user123''s profile. request.auth.uid == 'user456', userId == 'user123'
+     * @deny (get, update, delete) - User 'user456' tries to read/update/delete an order under 'user123''s profile. request.auth.uid == 'user456', userId == 'user123'
+     * @principle Enforces document ownership for writes and restricts access to a user's own order data.
      */
     match /users/{userId}/orders/{orderId} {
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
       allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow update: if isExistingOwner(userId) && resource.data.userId == userId;
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Defines security rules for nota documents within an order.
+     * @description Secure access to notas/receipts associated with a specific order. Only the user can read and write their own notas.
      * @path /users/{userId}/orders/{orderId}/notas/{notaId}
-     * @allow (create) User with ID 'user123' creates a nota under their order.
-     * @allow (get, update, delete) Authenticated user 'user123' accesses their own nota.
-     * @deny (create) User with ID 'user456' attempts to create a nota under user 'user123'.
-     * @deny (get, update, delete) Authenticated user 'user456' attempts to access nota under user 'user123'.
-     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
+     * @allow (create) - User 'user123' creates a nota under their order. request.auth.uid == 'user123'
+     * @allow (get, update, delete) - User 'user123' reads/updates/deletes their own nota. request.auth.uid == 'user123'
+     * @deny (create) - User 'user456' tries to create a nota under 'user123''s order. request.auth.uid == 'user456', userId == 'user123'
+     * @deny (get, update, delete) - User 'user456' tries to read/update/delete a nota under 'user123''s order. request.auth.uid == 'user456', userId == 'user123'
+     * @principle Enforces document ownership for writes and restricts access to a user's own nota data.
      */
     match /users/{userId}/orders/{orderId}/notas/{notaId} {
       allow get: if isOwner(userId);
@@ -124,21 +75,33 @@ service cloud.firestore {
     }
 
     /**
-     * @description Defines security rules for Jastip event documents.
+     * @description Allows public read access to Jastip events, but requires authentication for creation, updates, and deletion.
      * @path /events/{eventId}
-     * @allow (get, list) Any user can read event information.
-     * @allow (create) Authenticated user creates a new event with correct owner.
-     * @allow (update, delete) Authenticated user who owns the event can modify/delete it.
-     * @deny (create) Unauthenticated user attempts to create a new event.
-     * @deny (update, delete) Authenticated user attempts to modify/delete an event they don't own.
-     * @principle Allows public read access but restricts write access to the event owner.
+     * @allow (get, list) - Any user (or no user) can read/list the events.
+     * @allow (create) - Authenticated user creates an event. request.auth.uid != null
+     * @allow (update, delete) - Authenticated user updates/deletes an event. request.auth.uid != null
+     * @deny (create) - Unauthenticated user tries to create an event. request.auth.uid == null
+     * @deny (update, delete) - Unauthenticated user tries to update/delete an event. request.auth.uid == null
+     * @principle Allows public read access with owner-only writes.
      */
     match /events/{eventId} {
-      allow get: if true;
-      allow list: if true;
+      allow get, list: if true;
       allow create: if isSignedIn();
       allow update: if isSignedIn() && resource != null;
       allow delete: if isSignedIn() && resource != null;
     }
+  }
+
+  // Helper functions
+  function isSignedIn() {
+    return request.auth != null;
+  }
+
+  function isOwner(userId) {
+    return request.auth.uid == userId;
+  }
+
+  function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
   }
 }
