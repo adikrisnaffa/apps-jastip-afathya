@@ -19,6 +19,7 @@ import { Skeleton } from "../ui/skeleton";
 export default function Header() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
+  const isAnonymous = user?.isAnonymous;
 
   const handleLogout = async () => {
     if(auth) {
@@ -39,7 +40,7 @@ export default function Header() {
           </Link>
           <div className="flex items-center gap-4">
             {isUserLoading && <Skeleton className="h-8 w-24" />}
-            {!isUserLoading && user && (
+            {!isUserLoading && user && !isAnonymous && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -73,7 +74,7 @@ export default function Header() {
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
-             {!isUserLoading && !user && (
+             {!isUserLoading && (!user || isAnonymous) && (
                  <Button asChild>
                      <Link href="/login">
                         <LogIn className="mr-2 h-4 w-4"/>

@@ -1,34 +1,28 @@
 "use client";
 
 import { useMemo } from "react";
+import { useDoc } from "@/firebase/firestore/use-doc";
+import { doc } from "firebase/firestore";
+import { useFirestore, useMemoFirebase } from "@/firebase/provider";
 import OrderList from "@/components/dashboard/OrderList";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useParams } from "next/navigation";
-import { mockEvents } from "@/lib/mock-data";
 import type { JastipEvent } from "@/lib/types";
 
 export default function EventDetailPage() {
   const params = useParams();
   const eventId = params.eventId as string;
-  
-  // TEMPORARY FIX: Use mock data to avoid Firestore permission issues.
-  const event = useMemo(() => {
-    const foundEvent = mockEvents.find(e => e.id === eventId);
-    if (!foundEvent) return null;
-    // The mock data uses native Date, but Firestore would use Timestamp.
-    // To keep the component's logic consistent, we'll mimic the structure.
-    return {
-      ...foundEvent,
-      date: {
-        toDate: () => foundEvent.date
-      }
-    } as unknown as JastipEvent; // Cast to JastipEvent for type consistency
-  }, [eventId]);
+  const firestore = useFirestore();
 
-  const isLoading = false; // Not loading from Firestore anymore
+  const eventRef = useMemoFirebase(() => {
+    if (!firestore || !eventId) return null;
+    return doc(firestore, "events", eventId);
+  }, [firestore, eventId]);
+
+  const { data: event, isLoading } = useDoc<JastipEvent>(eventRef);
 
   const eventDate = event?.date?.toDate();
 
