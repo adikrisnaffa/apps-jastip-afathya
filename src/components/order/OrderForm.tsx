@@ -46,7 +46,7 @@ const defaultValues: Partial<OrderFormValues> = {
   quantity: 1,
 };
 
-export function OrderForm() {
+export function OrderForm({ eventId }: { eventId: string }) {
   const router = useRouter();
   const { toast } = useToast();
   const form = useForm<OrderFormValues>({
@@ -56,11 +56,12 @@ export function OrderForm() {
   });
 
   function onSubmit(data: OrderFormValues) {
+    console.log({ ...data, eventId });
     toast({
       title: "Order Submitted!",
       description: "We've received your order and will begin processing it shortly.",
     });
-    router.push("/");
+    router.push(`/events/${eventId}`);
   }
 
   function onRefineDescription() {
@@ -151,7 +152,7 @@ export function OrderForm() {
           <CardFooter className="flex-row-reverse justify-between">
             <Button type="submit" className="w-1/2 bg-primary hover:bg-primary/90 text-primary-foreground">Submit Order</Button>
             <Button asChild variant="outline" className="w-1/2">
-              <Link href="/">
+              <Link href={`/events/${eventId}`}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back
               </Link>

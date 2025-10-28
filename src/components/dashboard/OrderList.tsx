@@ -3,8 +3,15 @@ import OrderCard from "./OrderCard";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Truck } from "lucide-react";
 
-export default function OrderList() {
-  const orders = mockOrders;
+type OrderListProps = {
+  eventId?: string;
+};
+
+export default function OrderList({ eventId }: OrderListProps) {
+  const allOrders = mockOrders;
+  const orders = eventId
+    ? allOrders.filter((order) => order.eventId === eventId)
+    : allOrders;
 
   if (orders.length === 0) {
     return (
@@ -12,7 +19,7 @@ export default function OrderList() {
         <Truck className="h-4 w-4" />
         <AlertTitle>No Orders Yet!</AlertTitle>
         <AlertDescription>
-          You haven't placed any orders. Click "New Order" to get started.
+          Be the first to place an order for this event.
         </AlertDescription>
       </Alert>
     );

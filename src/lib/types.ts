@@ -13,4 +13,14 @@ export type Order = {
   status: OrderStatus;
   createdAt: Date;
   price: number; // price per item
+  eventId: string;
+};
+
+export type JastipEvent = {
+  id: string;
+  name: string;
+  description: string;
+  date: Date;
+  imageUrl: string;
+  imageHint: string;
 };
