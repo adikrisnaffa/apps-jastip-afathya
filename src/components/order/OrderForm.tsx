@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Sparkles } from "lucide-react";
+import { Sparkles, ArrowLeft } from "lucide-react";
 
 const orderFormSchema = z.object({
   itemDescription: z
@@ -147,8 +148,14 @@ export function OrderForm() {
               )}
             />
           </CardContent>
-          <CardFooter>
-            <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">Submit Order</Button>
+          <CardFooter className="flex-row-reverse justify-between">
+            <Button type="submit" className="w-1/2 bg-primary hover:bg-primary/90 text-primary-foreground">Submit Order</Button>
+            <Button asChild variant="outline" className="w-1/2">
+              <Link href="/">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back
+              </Link>
+            </Button>
           </CardFooter>
         </form>
       </Form>
