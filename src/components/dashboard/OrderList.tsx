@@ -1,12 +1,20 @@
 "use client";
 
+import { useMemo } from 'react';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { collection, query, where } from "firebase/firestore";
 import OrderCard from "./OrderCard";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, Truck } from "lucide-react";
+import { Loader2, Truck, User, ChevronDown } from "lucide-react";
 import type { Order } from "@/lib/types";
 import { Skeleton } from "../ui/skeleton";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
+import { Badge } from '../ui/badge';
 
 type OrderListProps = {
   eventId?: string;
@@ -27,12 +35,25 @@ export default function OrderList({ eventId }: OrderListProps) {
 
   const { data: orders, isLoading } = useCollection<Order>(ordersQuery);
 
+  const groupedOrders = useMemo(() => {
+    if (!orders) return {};
+    return orders.reduce((acc, order) => {
+      const customerName = order.customerName || 'Unnamed Customer';
+      if (!acc[customerName]) {
+        acc[customerName] = [];
+      }
+      acc[customerName].push(order);
+      return acc;
+    }, {} as Record<string, Order[]>);
+  }, [orders]);
+
+
   if (isUserLoading || (isLoading && !orders)) {
      return (
-       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-         <Skeleton className="h-64 w-full" />
-         <Skeleton className="h-64 w-full" />
-         <Skeleton className="h-64 w-full" />
+       <div className="space-y-4">
+         <Skeleton className="h-14 w-full" />
+         <Skeleton className="h-14 w-full" />
+         <Skeleton className="h-14 w-full" />
        </div>
      );
   }
@@ -62,10 +83,26 @@ export default function OrderList({ eventId }: OrderListProps) {
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-      {orders?.map((order) => (
-        <OrderCard key={order.id} order={order} />
+    <Accordion type="multiple" className="w-full space-y-4">
+      {Object.entries(groupedOrders).map(([customerName, customerOrders]) => (
+        <AccordionItem value={customerName} key={customerName} className="border-b-0">
+            <AccordionTrigger className="flex items-center justify-between w-full p-4 font-semibold text-left bg-card text-card-foreground rounded-lg shadow-md hover:bg-card/90 transition-all [&[data-state=open]>svg]:rotate-180">
+                <div className='flex items-center gap-4'>
+                    <User className="h-5 w-5 text-primary" />
+                    <span className='text-lg font-headline'>{customerName}</span>
+                    <Badge variant="secondary">{customerOrders.length} Order(s)</Badge>
+                </div>
+                <ChevronDown className="h-5 w-5 shrink-0 transition-transform duration-200 text-primary" />
+            </AccordionTrigger>
+            <AccordionContent className="pt-4">
+                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {customerOrders.map((order) => (
+                        <OrderCard key={order.id} order={order} />
+                    ))}
+                </div>
+            </AccordionContent>
+        </AccordionItem>
       ))}
-    </div>
+    </Accordion>
   );
 }

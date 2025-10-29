@@ -11,6 +11,7 @@ export type Order = {
   id: string;
   userId: string;
   eventId: string;
+  customerName: string;
   itemDescription: string;
   quantity: number;
   specificRequests?: string;

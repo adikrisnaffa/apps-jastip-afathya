@@ -15,6 +15,10 @@
           "type": "string",
           "description": "Reference to User. (Relationship: User 1:N Order). The ID of the user who placed the order."
         },
+        "customerName": {
+          "type": "string",
+          "description": "The name of the customer who this order is for."
+        },
         "itemDescription": {
           "type": "string",
           "description": "Description of the item being ordered."
@@ -48,6 +52,7 @@
       "required": [
         "id",
         "userId",
+        "customerName",
         "itemDescription",
         "quantity",
         "orderDate",

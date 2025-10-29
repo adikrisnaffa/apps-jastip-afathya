@@ -32,6 +32,9 @@ import { ArrowLeft, Loader2 } from "lucide-react";
 import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 const orderFormSchema = z.object({
+  customerName: z
+    .string({ required_error: "Please enter the customer's name."})
+    .min(2, { message: "Name must be at least 2 characters." }),
   itemDescription: z
     .string({
       required_error: "Please enter an item description.",
@@ -58,6 +61,7 @@ const orderFormSchema = z.object({
 type OrderFormValues = z.infer<typeof orderFormSchema>;
 
 const defaultValues: Partial<OrderFormValues> = {
+  customerName: "",
   quantity: 1,
   price: 0,
 };
@@ -124,6 +128,25 @@ export function OrderForm({ eventId }: { eventId: string }) {
           </CardHeader>
           <CardContent className="space-y-8">
             <FormField
+              control={form.control}
+              name="customerName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Customer Name</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="e.g., 'Adikrisna'"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    The name of the person placing the order.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
               control={form.control}
               name="itemDescription"
               render={({ field }) => (
