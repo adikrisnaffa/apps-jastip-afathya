@@ -2,7 +2,8 @@
 "use client";
 
 import Link from "next/link";
-import { PackageOpen, User as UserIcon, LogOut, LogIn } from "lucide-react";
+import { User as UserIcon, LogOut, LogIn } from "lucide-react";
+import Image from "next/image";
 import { useAuth, useUser } from "@/firebase/provider";
 import {
   DropdownMenu,
@@ -29,13 +30,18 @@ export default function Header() {
   return (
     <header className="bg-card shadow-md sticky top-0 z-40">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-20">
           <Link
             href="/"
-            className="flex items-center gap-2 text-xl font-bold font-headline text-primary"
+            className="flex items-center gap-2"
           >
-            <PackageOpen className="h-7 w-7" />
-            <span>JasTip Express</span>
+            <Image 
+                src="https://firebasestudio.app/assets/logo/jastipnya-logo-color.png"
+                alt="Jastip.nya by Afathya"
+                width={150}
+                height={50}
+                priority
+            />
           </Link>
           <div className="flex items-center gap-4">
             {isUserLoading && <Skeleton className="h-8 w-24" />}
