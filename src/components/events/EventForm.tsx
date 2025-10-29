@@ -123,7 +123,7 @@ export function EventForm({ event }: EventFormProps) {
         router.push(`/events/${event.id}`);
       } else {
         const eventsCollection = collection(firestore, "events");
-        await addDocumentNonBlocking(eventsCollection, eventData);
+        const newDoc = await addDocumentNonBlocking(eventsCollection, eventData);
         toast({
           title: "Event Created!",
           description: "Your new Jastip event has been successfully created.",
@@ -244,3 +244,5 @@ export function EventForm({ event }: EventFormProps) {
     </Card>
   );
 }
+
+    
