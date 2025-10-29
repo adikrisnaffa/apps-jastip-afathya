@@ -23,7 +23,6 @@ export default function EventCard({ event }: EventCardProps) {
                     alt={event.name}
                     fill
                     style={{ objectFit: 'cover' }}
-                    data-ai-hint={event.imageHint}
                 />
             </div>
         </CardHeader>

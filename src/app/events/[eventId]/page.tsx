@@ -1,21 +1,38 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useDoc } from "@/firebase/firestore/use-doc";
-import { doc } from "firebase/firestore";
-import { useFirestore, useMemoFirebase } from "@/firebase/provider";
+import { doc, deleteDoc } from "firebase/firestore";
+import { useFirestore, useMemoFirebase, useUser } from "@/firebase/provider";
+import { useRouter, useParams } from "next/navigation";
+import Link from "next/link";
 import OrderList from "@/components/dashboard/OrderList";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, ArrowLeft } from "lucide-react";
-import Link from "next/link";
+import { PlusCircle, ArrowLeft, Edit, Trash2, FileText, Download } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useParams } from "next/navigation";
 import type { JastipEvent } from "@/lib/types";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
+import { deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 export default function EventDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const eventId = params.eventId as string;
   const firestore = useFirestore();
+  const { user } = useUser();
+  const { toast } = useToast();
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const eventRef = useMemoFirebase(() => {
     if (!firestore || !eventId) return null;
@@ -23,8 +40,29 @@ export default function EventDetailPage() {
   }, [firestore, eventId]);
 
   const { data: event, isLoading } = useDoc<JastipEvent>(eventRef);
-
   const eventDate = event?.date?.toDate();
+  const isOwner = user && event?.ownerId === user.uid;
+
+  const handleDelete = async () => {
+    if (!isOwner || !eventRef) return;
+    setIsDeleting(true);
+    try {
+        await deleteDocumentNonBlocking(eventRef);
+        toast({
+            title: "Event Deleted",
+            description: "The event has been successfully removed.",
+        });
+        router.push("/");
+        router.refresh();
+    } catch (error: any) {
+        setIsDeleting(false);
+        toast({
+            title: "Error Deleting Event",
+            description: error.message || "Could not delete the event. Please try again.",
+            variant: "destructive",
+        });
+    }
+  }
 
   if (isLoading) {
     return (
@@ -53,15 +91,58 @@ export default function EventDetailPage() {
   return (
     <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8">
       <div className="mb-8">
-        <Button asChild variant="outline" className="mb-4">
-            <Link href="/">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                All Events
-            </Link>
-        </Button>
+        <div className="flex justify-between items-start flex-wrap gap-4">
+            <Button asChild variant="outline" className="mb-4">
+                <Link href="/">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    All Events
+                </Link>
+            </Button>
+            {isOwner && (
+                <div className="flex gap-2">
+                    <Button asChild variant="secondary">
+                        <Link href={`/events/${eventId}/edit`}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                        </Link>
+                    </Button>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive" disabled={isDeleting}>
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                {isDeleting ? "Deleting..." : "Delete"}
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This action cannot be undone. This will permanently delete the event
+                                    and all associated orders.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleDelete}>
+                                    Continue
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </div>
+            )}
+        </div>
         <h1 className="text-4xl font-bold font-headline text-foreground">{event.name}</h1>
         <p className="text-muted-foreground mt-2">{event.description}</p>
         <p className="text-sm text-primary font-semibold mt-1">{eventDate ? eventDate.toLocaleDateString() : 'Date not set'}</p>
+        {event.catalogUrl && (
+            <Button asChild variant="outline" size="sm" className="mt-4">
+                <a href={event.catalogUrl} target="_blank" rel="noopener noreferrer">
+                    <Download className="mr-2 h-4 w-4" />
+                    Download Catalog
+                </a>
+            </Button>
+        )}
       </div>
       
       <div className="flex items-center justify-between mb-8 flex-wrap gap-4">

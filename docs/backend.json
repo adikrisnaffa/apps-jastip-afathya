@@ -152,12 +152,16 @@
           "type": "string",
           "description": "URL of an image representing the event."
         },
-        "imageHint": {
+        "catalogUrl": {
           "type": "string",
-          "description": "A hint for AI to find a relevant image."
+          "description": "URL of a PDF catalog for the event."
+        },
+        "ownerId": {
+            "type": "string",
+            "description": "The ID of the user who created the event."
         }
       },
-      "required": ["id", "name", "description", "date", "imageUrl"]
+      "required": ["id", "name", "description", "date", "imageUrl", "ownerId"]
     }
   },
   "auth": {
@@ -232,7 +236,7 @@
         "definition": {
           "entityName": "JastipEvent",
           "schema": { "$ref": "#/backend/entities/JastipEvent" },
-          "description": "Stores information about Jastip events.",
+          "description": "Stores information about Jastip events. Event ownership is tracked via the 'ownerId' field, allowing for secure write/delete access control.",
           "params": [
             {
               "name": "eventId",
@@ -242,6 +246,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to provide a secure and scalable solution for the JasTip Express application, prioritizing Authorization Independence, Clarity of Intent, and adherence to DBAC principles.  The structure uses path-based ownership for user-related data and explicitly defines the schemas to ensure data clarity and predictability.\n\n**Authorization Independence:**\n\n*   The structure leverages path-based ownership for entities related to the user. For example, Orders are stored under `/users/{userId}/orders/{orderId}`. This eliminates the need for `get()` calls in security rules to determine ownership, as access control can be directly enforced based on the path.\n\n**QAPs (Rules are not Filters):**\n\n*   The use of structural segregation, with orders stored directly under user documents (`/users/{userId}/orders/{orderId}`), ensures that listing operations can be securely performed based on the `userId` without needing to filter based on document content. Only the user has read access to their specific `/users/{userId}/orders` collection.\n\n*   The Nota subcollection follows the same pattern, ensuring secure access to receipt data based on the parent Order document and user ownership.\n\n* Added an 'events' collection to store Jastip events. This is a top-level collection as events are public and not owned by specific users."
+    "reasoning": "The Firestore structure is designed to provide a secure and scalable solution for the JasTip Express application, prioritizing Authorization Independence, Clarity of Intent, and adherence to DBAC principles.  The structure uses path-based ownership for user-related data and explicitly defines the schemas to ensure data clarity and predictability.\n\n**Authorization Independence:**\n\n*   The structure leverages path-based ownership for entities related to the user. For example, Orders are stored under `/users/{userId}/orders/{orderId}`. This eliminates the need for `get()` calls in security rules to determine ownership, as access control can be directly enforced based on the path.\n\n**QAPs (Rules are not Filters):**\n\n*   The use of structural segregation, with orders stored directly under user documents (`/users/{userId}/orders/{orderId}`), ensures that listing operations can be securely performed based on the `userId` without needing to filter based on document content. Only the user has read access to their specific `/users/{userId}/orders` collection.\n\n*   The Nota subcollection follows the same pattern, ensuring secure access to receipt data based on the parent Order document and user ownership.\n\n* Added an 'events' collection to store Jastip events. Events are public, but write access is restricted to the event 'ownerId' to allow for editing and deletion by the creator."
   }
 }
