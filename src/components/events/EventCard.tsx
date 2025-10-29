@@ -3,7 +3,6 @@
 import type { JastipEvent } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Calendar } from "lucide-react";
 
@@ -16,16 +15,6 @@ export default function EventCard({ event }: EventCardProps) {
 
   return (
     <Card className="flex flex-col transform hover:-translate-y-1 transition-transform duration-300 ease-in-out shadow-lg hover:shadow-2xl overflow-hidden">
-        <CardHeader className="p-0">
-            <div className="relative h-48 w-full">
-                <Image
-                    src={event.imageUrl}
-                    alt={event.name}
-                    fill
-                    style={{ objectFit: 'cover' }}
-                />
-            </div>
-        </CardHeader>
       <div className="p-6 flex flex-col flex-grow">
         <CardTitle className="font-headline text-xl mb-2">{event.name}</CardTitle>
         <div className="flex items-center text-sm text-muted-foreground mb-4">

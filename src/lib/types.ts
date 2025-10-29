@@ -20,7 +20,5 @@ export type JastipEvent = {
   name: string;
   description: string;
   date: Timestamp;
-  imageUrl: string;
-  catalogUrl?: string;
   ownerId?: string;
 };

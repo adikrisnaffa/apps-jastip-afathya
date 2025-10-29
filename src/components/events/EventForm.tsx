@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { collection, doc, Timestamp } from "firebase/firestore";
 import { useFirestore, useUser } from "@/firebase";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -37,10 +36,6 @@ import {
 } from "@/firebase/non-blocking-updates";
 import type { JastipEvent } from "@/lib/types";
 
-// Helper for file validation
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-const ACCEPTED_PDF_TYPES = ["application/pdf"];
 
 const eventFormSchema = z.object({
   name: z
@@ -52,36 +47,6 @@ const eventFormSchema = z.object({
   date: z
     .string({ required_error: "Please select a date." })
     .refine((val) => !isNaN(Date.parse(val)), { message: "Invalid date format." }),
-  image: z
-    .any()
-    .refine((files) => files?.length === 1 || typeof files === "string", "Image is required.")
-    .refine(
-      (files) => typeof files === "string" || files?.[0]?.size <= MAX_FILE_SIZE,
-      `Max image size is 5MB.`
-    )
-    .refine(
-      (files) => typeof files === "string" || ACCEPTED_IMAGE_TYPES.includes(files?.[0]?.type),
-      ".jpg, .jpeg, .png and .webp files are accepted."
-    ),
-  catalog: z
-    .any()
-    .optional()
-    .refine(
-      (files) => files?.length === 0 || files?.length === 1 || typeof files === "string",
-      "Only one catalog file is allowed."
-    )
-    .refine(
-      (files) =>
-        typeof files === "string" || !files?.[0] || files?.[0]?.size <= MAX_FILE_SIZE,
-      `Max catalog size is 5MB.`
-    )
-    .refine(
-      (files) =>
-        typeof files === "string" ||
-        !files?.[0] ||
-        ACCEPTED_PDF_TYPES.includes(files?.[0]?.type),
-      "Only .pdf files are accepted for the catalog."
-    ),
 });
 
 type EventFormValues = z.infer<typeof eventFormSchema>;
@@ -102,15 +67,11 @@ export function EventForm({ event }: EventFormProps) {
         name: event.name,
         description: event.description,
         date: event.date.toDate().toISOString().split("T")[0],
-        image: event.imageUrl,
-        catalog: event.catalogUrl || "",
       }
     : {
         name: "",
         description: "",
         date: "",
-        image: undefined,
-        catalog: undefined,
       };
 
   const form = useForm<EventFormValues>({
@@ -143,33 +104,11 @@ export function EventForm({ event }: EventFormProps) {
     }
 
     try {
-      const storage = getStorage();
-      let imageUrl = typeof data.image === "string" ? data.image : "";
-      let catalogUrl = typeof data.catalog === "string" ? data.catalog : "";
-
-      // Upload Image to Firebase Storage
-      if (data.image && typeof data.image !== "string" && data.image[0]) {
-        const imageFile = data.image[0];
-        const imageRef = ref(storage, `events/${user.uid}/${Date.now()}_${imageFile.name}`);
-        const uploadResult = await uploadBytes(imageRef, imageFile);
-        imageUrl = await getDownloadURL(uploadResult.ref);
-      }
-
-      // Upload Catalog (if any)
-      if (data.catalog && typeof data.catalog !== "string" && data.catalog[0]) {
-        const catalogFile = data.catalog[0];
-        const catalogRef = ref(storage, `catalogs/${user.uid}/${Date.now()}_${catalogFile.name}`);
-        const uploadResult = await uploadBytes(catalogRef, catalogFile);
-        catalogUrl = await getDownloadURL(uploadResult.ref);
-      }
-
       // Prepare data for Firestore
       const eventData = {
         name: data.name,
         description: data.description,
         date: Timestamp.fromDate(new Date(data.date)),
-        imageUrl,
-        catalogUrl: catalogUrl || undefined,
         ownerId: user.uid,
       };
 
@@ -269,67 +208,6 @@ export function EventForm({ event }: EventFormProps) {
                   <FormControl>
                     <Input type="date" {...field} />
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Image Upload */}
-            <FormField
-              control={form.control}
-              name="image"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Event Image</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="file"
-                      accept={ACCEPTED_IMAGE_TYPES.join(",")}
-                      onChange={(e) => field.onChange(e.target.files)}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Upload an image for your event (JPG, PNG, WebP). Max 5MB.
-                  </FormDescription>
-                  {isEditMode && typeof event.imageUrl === "string" && (
-                    <img
-                      src={event.imageUrl}
-                      alt="Current event"
-                      className="w-32 h-32 object-cover mt-2 rounded-md"
-                    />
-                  )}
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Catalog Upload */}
-            <FormField
-              control={form.control}
-              name="catalog"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Event Catalog (Optional)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="file"
-                      accept={ACCEPTED_PDF_TYPES.join(",")}
-                      onChange={(e) => field.onChange(e.target.files)}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Upload a PDF catalog for your event. Max 5MB.
-                  </FormDescription>
-                  {isEditMode && typeof event.catalogUrl === "string" && (
-                    <a
-                      href={event.catalogUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline text-sm mt-2 block"
-                    >
-                      View Current Catalog
-                    </a>
-                  )}
                   <FormMessage />
                 </FormItem>
               )}

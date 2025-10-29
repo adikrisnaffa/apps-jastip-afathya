@@ -9,7 +9,7 @@ import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import OrderList from "@/components/dashboard/OrderList";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, ArrowLeft, Edit, Trash2, Download } from "lucide-react";
+import { PlusCircle, ArrowLeft, Edit, Trash2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { JastipEvent } from "@/lib/types";
 import {
@@ -44,8 +44,10 @@ export default function EventDetailPage() {
 
   const isOwner = useMemo(() => {
     if (!user || !event) return false;
+    // User is the owner if their UID matches the event's ownerId.
     return user.uid === event.ownerId;
   }, [user, event]);
+
 
   const handleDelete = async () => {
     if (!isOwner || !eventRef || !firestore) return;
@@ -139,14 +141,6 @@ export default function EventDetailPage() {
         <h1 className="text-4xl font-bold font-headline text-foreground">{event.name}</h1>
         <p className="text-muted-foreground mt-2">{event.description}</p>
         <p className="text-sm text-primary font-semibold mt-1">{eventDate ? eventDate.toLocaleDateString() : 'Date not set'}</p>
-        {event.catalogUrl && (
-            <Button asChild variant="outline" size="sm" className="mt-4">
-                <a href={event.catalogUrl} target="_blank" rel="noopener noreferrer">
-                    <Download className="mr-2 h-4 w-4" />
-                    Download Catalog
-                </a>
-            </Button>
-        )}
       </div>
       
       <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
