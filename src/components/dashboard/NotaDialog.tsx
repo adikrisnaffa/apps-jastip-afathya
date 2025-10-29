@@ -28,7 +28,7 @@ type NotaDialogProps = {
   order: Order;
 };
 
-export function NotaDialog({ order, children }: NotaDialogProps) {
+export function NotaDialog({ order, children }: NotaDialogProps & { children: ReactNode }) {
   const { toast } = useToast();
   const total = (order.price || 0) * order.quantity;
   const orderDate = order.createdAt?.toDate();
@@ -42,6 +42,10 @@ export function NotaDialog({ order, children }: NotaDialogProps) {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const formatRupiah = (amount: number) => {
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
   };
 
   return (
@@ -71,14 +75,14 @@ export function NotaDialog({ order, children }: NotaDialogProps) {
               <TableRow>
                 <TableCell className="font-medium">{order.itemDescription}</TableCell>
                 <TableCell className="text-center">{order.quantity}</TableCell>
-                <TableCell className="text-right">${(order.price || 0).toFixed(2)}</TableCell>
-                <TableCell className="text-right">${total.toFixed(2)}</TableCell>
+                <TableCell className="text-right">{formatRupiah(order.price || 0)}</TableCell>
+                <TableCell className="text-right">{formatRupiah(total)}</TableCell>
               </TableRow>
             </TableBody>
             <TableFooter>
               <TableRow>
                 <TableCell colSpan={3} className="text-right font-bold text-lg">Grand Total</TableCell>
-                <TableCell className="text-right font-bold text-lg">${total.toFixed(2)}</TableCell>
+                <TableCell className="text-right font-bold text-lg">{formatRupiah(total)}</TableCell>
               </TableRow>
             </TableFooter>
           </Table>

@@ -46,6 +46,12 @@ const orderFormSchema = z.object({
     })
     .int()
     .min(1, { message: "You must order at least 1 item." }),
+  price: z.coerce
+    .number({
+        required_error: "Please enter a price.",
+        invalid_type_error: "Price must be a number.",
+    })
+    .min(0, { message: "Price cannot be negative." }),
   specificRequests: z.string().optional(),
 });
 
@@ -53,6 +59,7 @@ type OrderFormValues = z.infer<typeof orderFormSchema>;
 
 const defaultValues: Partial<OrderFormValues> = {
   quantity: 1,
+  price: 0,
 };
 
 export function OrderForm({ eventId }: { eventId: string }) {
@@ -88,7 +95,6 @@ export function OrderForm({ eventId }: { eventId: string }) {
         userId: user.uid,
         createdAt: Timestamp.now(),
         status: "Placed" as const,
-        price: 0, // Assuming price will be set later by an admin
       };
       await addDocumentNonBlocking(ordersCollection, newOrder);
 
@@ -137,19 +143,34 @@ export function OrderForm({ eventId }: { eventId: string }) {
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="quantity"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Quantity</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="1" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-8">
+              <FormField
+                control={form.control}
+                name="quantity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Quantity</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="1" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+               <FormField
+                control={form.control}
+                name="price"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Price per Item (Rp)</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="150000" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <FormField
               control={form.control}
               name="specificRequests"
