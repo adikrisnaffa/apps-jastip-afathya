@@ -42,8 +42,6 @@ export default function OrderList({ eventId }: OrderListProps) {
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState<string | null>(null);
 
-  // Since role-access logic is removed, we now query all orders for an event.
-  // This requires a collection group query.
   const ordersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, "orders"), where("eventId", "==", eventId));
@@ -72,7 +70,6 @@ export default function OrderList({ eventId }: OrderListProps) {
       const ordersToDelete = groupedOrders[customerName];
 
       ordersToDelete.forEach(order => {
-        // Since we are using a top-level 'orders' collection now
         const orderRef = doc(firestore, `orders`, order.id);
         batch.delete(orderRef);
       });
@@ -192,7 +189,7 @@ export default function OrderList({ eventId }: OrderListProps) {
                       Add Order
                     </Link>
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleMarkAllPaid(customerName)} disabled={isUpdatingStatus === customerName}>
+                  <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleMarkAllPaid(customerName); }} disabled={isUpdatingStatus === customerName}>
                         <CreditCard className="mr-2 h-4 w-4" />
                         {isUpdatingStatus === customerName ? "Paying..." : "Paid"}
                   </Button>
@@ -224,7 +221,7 @@ export default function OrderList({ eventId }: OrderListProps) {
             <AccordionContent className="pt-0 p-4">
                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 pt-4 border-t">
                     {groupedOrders[customerName].map((order) => (
-                        <OrderCard key={order.id} order={order} />
+                        <OrderCard key={order.id} order={order} isOwner={false} />
                     ))}
                 </div>
             </AccordionContent>
