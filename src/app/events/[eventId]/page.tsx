@@ -42,20 +42,15 @@ export default function EventDetailPage() {
   const { data: event, isLoading } = useDoc<JastipEvent>(eventRef);
   const eventDate = event?.date?.toDate();
 
-  // Determine if the logged-in user is the owner of the event.
-  // TEMPORARY FIX: Allow deletion if ownerId is missing and a user is logged in.
   const isOwner = useMemo(() => {
     if (!user || !event) return false;
-    // New logic: User is owner if their UID matches event.ownerId OR if the event has no ownerId.
-    return user.uid === event.ownerId || !event.ownerId;
+    return user.uid === event.ownerId;
   }, [user, event]);
 
   const handleDelete = async () => {
     if (!isOwner || !eventRef || !firestore) return;
     setIsDeleting(true);
     try {
-        // This is a simplified approach. In a real-world app, you might want to
-        // also delete all associated orders, perhaps using a Cloud Function for atomicity.
         await deleteDoc(eventRef);
         toast({
             title: "Event Deleted",
