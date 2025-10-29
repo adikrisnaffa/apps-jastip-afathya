@@ -42,26 +42,12 @@ export default function OrderList({ eventId }: OrderListProps) {
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState<string | null>(null);
 
-  // This query fetches all orders for a specific event across all users.
-  // This is not scalable for very large apps, but it's simple and works for this use case.
-  // It requires a composite index on (eventId, userId). Firestore will prompt to create it.
+  // Since role-access logic is removed, we now query all orders for an event.
+  // This requires a collection group query.
   const ordersQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-
-    // This is a simplified query that gets all orders for an event.
-    // In a real multi-tenant app, you'd query each user's subcollection, which is more complex.
-    // For this app, we will query all `orders` collections.
-    // NOTE: This approach requires a collection group query and corresponding index.
-    // A simpler (but less secure without proper rules) way is to have a single top-level 'orders' collection.
-    // Given the current structure `users/{userId}/orders`, we can only query the logged-in user's orders easily.
-    // To show all orders, we would need to restructure or use more complex queries/backend functions.
-    
-    // For now, let's revert to a simpler logic: show all orders from the logged-in user for that event.
-    // This is a limitation of the current Firestore structure if we want a full admin view.
-    let ordersCollectionRef = collection(firestore, `users/${user.uid}/orders`);
-    return query(ordersCollectionRef, where("eventId", "==", eventId));
-
-  }, [firestore, user, eventId]);
+    if (!firestore) return null;
+    return query(collection(firestore, "orders"), where("eventId", "==", eventId));
+  }, [firestore, eventId]);
 
   const { data: orders, isLoading } = useCollection<Order>(ordersQuery);
 
@@ -86,8 +72,8 @@ export default function OrderList({ eventId }: OrderListProps) {
       const ordersToDelete = groupedOrders[customerName];
 
       ordersToDelete.forEach(order => {
-        // All orders are under the currently logged-in user's subcollection
-        const orderRef = doc(firestore, `users/${user.uid}/orders`, order.id);
+        // Since we are using a top-level 'orders' collection now
+        const orderRef = doc(firestore, `orders`, order.id);
         batch.delete(orderRef);
       });
 
@@ -117,7 +103,7 @@ export default function OrderList({ eventId }: OrderListProps) {
       const ordersToUpdate = groupedOrders[customerName];
 
       ordersToUpdate.forEach(order => {
-        const orderRef = doc(firestore, `users/${user.uid}/orders`, order.id);
+        const orderRef = doc(firestore, `orders`, order.id);
         batch.update(orderRef, { status: "Paid" });
       });
 
@@ -178,14 +164,13 @@ export default function OrderList({ eventId }: OrderListProps) {
     <Accordion type="multiple" className="w-full space-y-4">
       {customerKeys.map((customerName) => (
         <AccordionItem value={customerName} key={customerName} className="border-b-0 rounded-lg bg-card text-card-foreground shadow-md transition-all">
-            <div className="flex items-center justify-between w-full p-4 font-semibold text-left">
-                <AccordionTrigger asChild>
+            <AccordionTrigger>
+              <div className="flex items-center justify-between w-full p-4 font-semibold text-left">
                   <div className="flex flex-1 items-center gap-4 cursor-pointer">
                     <User className="h-5 w-5 text-primary" />
                     <span className="text-lg font-headline">{customerName}</span>
                     <Badge variant="secondary">{groupedOrders[customerName].length} Order(s)</Badge>
                   </div>
-                </AccordionTrigger>
                 
                 <div className="flex items-center gap-2 pl-4">
                   <NotaDialog orders={groupedOrders[customerName]} customerName={customerName}>
@@ -234,11 +219,12 @@ export default function OrderList({ eventId }: OrderListProps) {
                         </AlertDialogContent>
                     </AlertDialog>
                 </div>
-            </div>
+              </div>
+            </AccordionTrigger>
             <AccordionContent className="pt-0 p-4">
                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 pt-4 border-t">
                     {groupedOrders[customerName].map((order) => (
-                        <OrderCard key={order.id} order={order} isOwner={true} /> // Pass isOwner as true to allow edits
+                        <OrderCard key={order.id} order={order} />
                     ))}
                 </div>
             </AccordionContent>
