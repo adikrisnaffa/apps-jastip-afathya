@@ -15,7 +15,6 @@ export default function Home() {
   const { user } = useUser();
 
   // A user can create an event if they are logged in.
-  // The event will be owned by them.
   const canCreateEvents = !!user;
 
   const eventsQuery = useMemoFirebase(() => {
@@ -71,5 +70,3 @@ export default function Home() {
     </div>
   );
 }
-
-    

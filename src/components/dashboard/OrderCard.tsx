@@ -23,11 +23,10 @@ import {
 import { Edit, Trash2, CreditCard } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import { deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 type OrderCardProps = {
   order: Order;
-  isOwner: boolean;
+  isOwner: boolean; // isOwner is now simplified, but kept for compatibility
 };
 
 const statusConfig: Record<
@@ -38,7 +37,7 @@ const statusConfig: Record<
   "Paid": { color: "bg-green-600", progress: 100, label: "Payment Confirmed" },
 };
 
-export default function OrderCard({ order, isOwner }: OrderCardProps) {
+export default function OrderCard({ order }: OrderCardProps) {
   const config = statusConfig[order.status];
   const firestore = useFirestore();
   const { user } = useUser();
@@ -48,22 +47,13 @@ export default function OrderCard({ order, isOwner }: OrderCardProps) {
 
   const handleDelete = async () => {
     if (!user || !firestore) return;
-    
-    // The user who created the order can delete it. The event owner can also delete it.
-    const canDelete = isOwner || user.uid === order.userId;
-    if (!canDelete) {
-        toast({ title: "Unauthorized", description: "You don't have permission to delete this order.", variant: "destructive"});
-        return;
-    }
 
     setIsDeleting(true);
-    // Important: The order is always stored under the user who CREATED it.
     const orderRef = doc(firestore, `users/${order.userId}/orders`, order.id);
     
     try {
-        await deleteDoc(orderRef); // Using await for immediate UI feedback
+        await deleteDoc(orderRef);
         toast({ title: "Order Deleted", description: "The order has been successfully removed." });
-        // The component will unmount as the collection re-queries. No need to setIsDeleting(false).
     } catch (error: any) {
         setIsDeleting(false);
         toast({ title: "Error Deleting Order", description: error.message, variant: "destructive"});
@@ -71,13 +61,8 @@ export default function OrderCard({ order, isOwner }: OrderCardProps) {
   }
 
   const handleMarkAsPaid = async () => {
-    // Only the event owner can mark as paid.
-    if (!user || !firestore || !isOwner) {
-        toast({ title: "Unauthorized", description: "Only the event owner can update payment status.", variant: "destructive"});
-        return;
-    };
+    if (!user || !firestore) return;
     setIsUpdatingStatus(true);
-    // The order is under the user who created it. The owner needs write access via security rules.
     const orderRef = doc(firestore, `users/${order.userId}/orders`, order.id);
     try {
         await updateDoc(orderRef, { status: "Paid" });
@@ -88,12 +73,8 @@ export default function OrderCard({ order, isOwner }: OrderCardProps) {
         setIsUpdatingStatus(false);
     }
   }
-
-  const canEdit = user && user.uid === order.userId;
-  const canDelete = isOwner || (user && user.uid === order.userId);
   
   if (!config) {
-    // Gracefully handle orders with a legacy or undefined status
     return (
         <Card className="flex flex-col transform hover:-translate-y-1 transition-transform duration-300 ease-in-out shadow-lg hover:shadow-2xl opacity-70">
             <CardHeader>
@@ -108,30 +89,28 @@ export default function OrderCard({ order, isOwner }: OrderCardProps) {
                 </div>
             </CardHeader>
             <CardContent className="flex-grow">
-                 <p className="text-sm text-muted-foreground">This order has an unknown status and cannot be processed normally.</p>
+                 <p className="text-sm text-muted-foreground">This order has an unknown or legacy status.</p>
             </CardContent>
             <CardFooter>
-                 {canDelete && (
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="destructive" size="sm" disabled={isDeleting}>
-                          <Trash2 className="mr-2 h-4 w-4" /> {isDeleting ? "..." : "Delete"}
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete this order?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This will permanently delete the order for &quot;{order.itemDescription}&quot;. This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={handleDelete}>Confirm</AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                )}
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm" disabled={isDeleting}>
+                      <Trash2 className="mr-2 h-4 w-4" /> {isDeleting ? "..." : "Delete"}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete this order?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently delete the order for &quot;{order.itemDescription}&quot;. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDelete}>Confirm</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
             </CardFooter>
         </Card>
     );
@@ -173,42 +152,36 @@ export default function OrderCard({ order, isOwner }: OrderCardProps) {
         </div>
       </CardContent>
       <CardFooter className="grid grid-cols-3 gap-2">
-        {canEdit ? (
-            <Button asChild variant="secondary" size="sm">
-                <Link href={`/order/${order.id}/edit?eventId=${order.eventId}`}>
-                    <Edit className="mr-2 h-4 w-4" /> Edit
-                </Link>
-            </Button>
-        ) : <div/>}
+        <Button asChild variant="secondary" size="sm">
+            <Link href={`/order/${order.id}/edit?eventId=${order.eventId}`}>
+                <Edit className="mr-2 h-4 w-4" /> Edit
+            </Link>
+        </Button>
 
-        {isOwner && (
-            <Button variant="outline" size="sm" onClick={handleMarkAsPaid} disabled={isUpdatingStatus || order.status === 'Paid'}>
-                <CreditCard className="mr-2 h-4 w-4" />
-                {isUpdatingStatus ? "..." : "Paid"}
-            </Button>
-        )}
+        <Button variant="outline" size="sm" onClick={handleMarkAsPaid} disabled={isUpdatingStatus || order.status === 'Paid'}>
+            <CreditCard className="mr-2 h-4 w-4" />
+            {isUpdatingStatus ? "..." : "Paid"}
+        </Button>
         
-        {canDelete && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="sm" disabled={isDeleting}>
-                  <Trash2 className="mr-2 h-4 w-4" /> {isDeleting ? "..." : "Delete"}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete this order?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will permanently delete the order for &quot;{order.itemDescription}&quot;. This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDelete}>Confirm</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-        )}
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive" size="sm" disabled={isDeleting}>
+              <Trash2 className="mr-2 h-4 w-4" /> {isDeleting ? "..." : "Delete"}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete this order?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete the order for &quot;{order.itemDescription}&quot;. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete}>Confirm</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardFooter>
     </Card>
   );

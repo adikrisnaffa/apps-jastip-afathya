@@ -109,7 +109,6 @@ export function EventForm({ event }: EventFormProps) {
         name: data.name,
         description: data.description,
         date: Timestamp.fromDate(new Date(data.date)),
-        ownerId: user.uid,
       };
 
       if (isEditMode && event.id) {

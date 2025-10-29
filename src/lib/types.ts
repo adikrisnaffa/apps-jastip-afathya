@@ -20,5 +20,4 @@ export type JastipEvent = {
   name: string;
   description: string;
   date: Timestamp;
-  ownerId?: string;
 };

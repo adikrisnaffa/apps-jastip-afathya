@@ -8,17 +8,16 @@ import { useFirestore, useMemoFirebase, useUser } from '@/firebase/provider';
 import { EventForm } from '@/components/events/EventForm';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ArrowLeft, ShieldAlert } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import type { JastipEvent } from '@/lib/types';
 
 export default function EditEventPage() {
   const params = useParams();
-  const router = useRouter();
   const eventId = params.eventId as string;
   const firestore = useFirestore();
-  const { user, isUserLoading } = useUser();
+  const { isUserLoading } = useUser();
 
   const eventRef = useMemoFirebase(() => {
     if (!firestore || !eventId) return null;
@@ -28,7 +27,6 @@ export default function EditEventPage() {
   const { data: event, isLoading: isEventLoading } = useDoc<JastipEvent>(eventRef);
 
   const isLoading = isUserLoading || isEventLoading;
-  const isOwner = user && event && event.ownerId === user.uid;
 
   if (isLoading) {
     return (
@@ -57,26 +55,6 @@ export default function EditEventPage() {
         </Button>
       </div>
     );
-  }
-
-  if (!isOwner) {
-    return (
-        <div className="container mx-auto max-w-2xl py-12 px-4">
-            <Alert variant="destructive">
-                <ShieldAlert className="h-4 w-4" />
-                <AlertTitle>Access Denied</AlertTitle>
-                <AlertDescription>
-                    You do not have permission to edit this event.
-                </AlertDescription>
-            </Alert>
-             <Button asChild variant="link" className="mt-4">
-                <Link href={`/events/${eventId}`}>
-                    <ArrowLeft className="mr-2 h-4 w-4"/>
-                    Back to Event
-                </Link>
-            </Button>
-        </div>
-    )
   }
 
   return (

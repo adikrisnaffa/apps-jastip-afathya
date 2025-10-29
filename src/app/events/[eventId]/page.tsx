@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useDoc } from "@/firebase/firestore/use-doc";
 import { doc, deleteDoc } from "firebase/firestore";
 import { useFirestore, useMemoFirebase, useUser } from "@/firebase/provider";
@@ -42,15 +42,10 @@ export default function EventDetailPage() {
   const { data: event, isLoading } = useDoc<JastipEvent>(eventRef);
   const eventDate = event?.date?.toDate();
 
-  const isOwner = useMemo(() => {
-    if (!user || !event) return false;
-    // User is the owner if their UID matches the event's ownerId.
-    return user.uid === event.ownerId;
-  }, [user, event]);
-
+  const canManageEvent = !!user;
 
   const handleDelete = async () => {
-    if (!isOwner || !eventRef || !firestore) return;
+    if (!canManageEvent || !eventRef || !firestore) return;
     setIsDeleting(true);
     try {
         await deleteDoc(eventRef);
@@ -104,7 +99,7 @@ export default function EventDetailPage() {
                     All Events
                 </Link>
             </Button>
-            {isOwner && (
+            {canManageEvent && (
                 <div className="flex gap-2">
                     <Button asChild variant="secondary">
                         <Link href={`/events/${eventId}/edit`}>
@@ -145,7 +140,7 @@ export default function EventDetailPage() {
       
       <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
         <h2 className="text-3xl font-bold font-headline text-foreground">
-          {isOwner ? "All Event Orders" : "My Orders"}
+          Event Orders
         </h2>
         {user && (
           <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground">
@@ -156,7 +151,7 @@ export default function EventDetailPage() {
           </Button>
         )}
       </div>
-      <OrderList eventId={event.id} isOwner={isOwner} />
+      <OrderList eventId={event.id} />
     </div>
   );
 }
