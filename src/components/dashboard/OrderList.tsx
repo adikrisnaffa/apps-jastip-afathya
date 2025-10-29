@@ -89,30 +89,35 @@ export default function OrderList({ eventId }: OrderListProps) {
     <Accordion type="multiple" className="w-full space-y-4">
       {Object.entries(groupedOrders).map(([customerName, customerOrders]) => (
         <AccordionItem value={customerName} key={customerName} className="border-b-0">
-            <AccordionTrigger asChild>
-                <div className="flex items-center justify-between w-full p-4 font-semibold text-left bg-card text-card-foreground rounded-lg shadow-md hover:bg-card/90 transition-all [&[data-state=open]>svg:last-child]:rotate-180">
-                    <div className='flex items-center gap-4'>
-                        <User className="h-5 w-5 text-primary" />
-                        <span className='text-lg font-headline'>{customerName}</span>
-                        <Badge variant="secondary">{customerOrders.length} Order(s)</Badge>
+            <div className="flex items-center justify-between w-full p-4 font-semibold text-left bg-card text-card-foreground rounded-lg shadow-md hover:bg-card/90 transition-all">
+                <AccordionTrigger className="flex-1 p-0 hover:no-underline">
+                    <div className="flex items-center gap-4">
+                      <User className="h-5 w-5 text-primary" />
+                      <span className="text-lg font-headline">{customerName}</span>
+                      <Badge variant="secondary">{customerOrders.length} Order(s)</Badge>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <NotaDialog orders={customerOrders} customerName={customerName}>
-                          <Button variant="outline" size="sm" onClick={(e) => e.stopPropagation()}>
-                              <Receipt className="mr-2 h-4 w-4" />
-                              View Receipt
-                          </Button>
-                        </NotaDialog>
-                        <Button asChild variant="ghost" size="sm" onClick={(e) => e.stopPropagation()}>
-                            <Link href={`/order/new?eventId=${eventId}&customerName=${encodeURIComponent(customerName)}`}>
-                                <PlusCircle className="mr-2 h-4 w-4" />
-                                Add Order
-                            </Link>
-                        </Button>
-                        <ChevronDown className="h-5 w-5 shrink-0 transition-transform duration-200 text-primary" />
-                    </div>
+                </AccordionTrigger>
+                <div className="flex items-center gap-2 pl-4" onClick={(e) => e.stopPropagation()}>
+                  <NotaDialog orders={customerOrders} customerName={customerName}>
+                    <Button variant="outline" size="sm">
+                      <Receipt className="mr-2 h-4 w-4" />
+                      View Receipt
+                    </Button>
+                  </NotaDialog>
+                  <Button
+                    asChild
+                    variant="ghost"
+                    size="sm"
+                  >
+                    <Link
+                      href={`/order/new?eventId=${eventId}&customerName=${encodeURIComponent(customerName)}`}
+                    >
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      Add Order
+                    </Link>
+                  </Button>
                 </div>
-            </AccordionTrigger>
+            </div>
             <AccordionContent className="pt-4">
                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {customerOrders.map((order) => (
