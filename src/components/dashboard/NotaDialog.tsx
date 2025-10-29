@@ -26,12 +26,12 @@ import { Separator } from "../ui/separator";
 
 type NotaDialogProps = {
   order: Order;
-  children: ReactNode;
 };
 
 export function NotaDialog({ order, children }: NotaDialogProps) {
   const { toast } = useToast();
-  const total = order.price * order.quantity;
+  const total = (order.price || 0) * order.quantity;
+  const orderDate = order.createdAt?.toDate();
 
   const handlePayment = () => {
     toast({
@@ -56,7 +56,7 @@ export function NotaDialog({ order, children }: NotaDialogProps) {
         </DialogHeader>
         <div className="py-4 space-y-4">
           <div className="text-sm text-muted-foreground">
-            <p><strong>Date:</strong> {order.createdAt.toLocaleDateString()}</p>
+            <p><strong>Date:</strong> {orderDate ? orderDate.toLocaleDateString() : 'N/A'}</p>
           </div>
           <Table>
             <TableHeader>
@@ -71,7 +71,7 @@ export function NotaDialog({ order, children }: NotaDialogProps) {
               <TableRow>
                 <TableCell className="font-medium">{order.itemDescription}</TableCell>
                 <TableCell className="text-center">{order.quantity}</TableCell>
-                <TableCell className="text-right">${order.price.toFixed(2)}</TableCell>
+                <TableCell className="text-right">${(order.price || 0).toFixed(2)}</TableCell>
                 <TableCell className="text-right">${total.toFixed(2)}</TableCell>
               </TableRow>
             </TableBody>

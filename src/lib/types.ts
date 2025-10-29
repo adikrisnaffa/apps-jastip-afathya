@@ -9,13 +9,14 @@ export type OrderStatus =
 
 export type Order = {
   id: string;
+  userId: string;
+  eventId: string;
   itemDescription: string;
   quantity: number;
   specificRequests?: string;
   status: OrderStatus;
-  createdAt: Date;
+  createdAt: Timestamp;
   price: number; // price per item
-  eventId: string;
 };
 
 export type JastipEvent = {

@@ -5,6 +5,8 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { collection, Timestamp } from "firebase/firestore";
+import { useFirestore, useUser } from "@/firebase";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,8 +21,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 const orderFormSchema = z.object({
   itemDescription: z
@@ -49,19 +58,55 @@ const defaultValues: Partial<OrderFormValues> = {
 export function OrderForm({ eventId }: { eventId: string }) {
   const router = useRouter();
   const { toast } = useToast();
+  const firestore = useFirestore();
+  const { user } = useUser();
+
   const form = useForm<OrderFormValues>({
     resolver: zodResolver(orderFormSchema),
     defaultValues,
     mode: "onChange",
   });
 
-  function onSubmit(data: OrderFormValues) {
-    console.log({ ...data, eventId });
-    toast({
-      title: "Order Submitted!",
-      description: "We've received your order and will begin processing it shortly.",
-    });
-    router.push(`/events/${eventId}`);
+  const { formState: { isSubmitting } } = form;
+
+  async function onSubmit(data: OrderFormValues) {
+    if (!firestore) {
+      toast({ title: "Error", description: "Firestore is not available.", variant: "destructive" });
+      return;
+    }
+    if (!user) {
+      toast({ title: "Not logged in", description: "You must be logged in to place an order.", variant: "destructive" });
+      router.push('/login');
+      return;
+    }
+
+    try {
+      const ordersCollection = collection(firestore, "users", user.uid, "orders");
+      const newOrder = {
+        ...data,
+        eventId: eventId,
+        userId: user.uid,
+        createdAt: Timestamp.now(),
+        status: "Placed" as const,
+        price: 0, // Assuming price will be set later by an admin
+      };
+      await addDocumentNonBlocking(ordersCollection, newOrder);
+
+      toast({
+        title: "Order Submitted!",
+        description: "We've received your order and will begin processing it shortly.",
+      });
+      router.push(`/events/${eventId}`);
+      router.refresh();
+
+    } catch (error: any) {
+       console.error("Error submitting order: ", error);
+       toast({
+         title: "Something went wrong",
+         description: error.message || "Could not submit your order. Please try again.",
+         variant: "destructive",
+       });
+    }
   }
 
   return (
@@ -69,7 +114,7 @@ export function OrderForm({ eventId }: { eventId: string }) {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardHeader>
-             <CardTitle className="font-headline">Order Details</CardTitle>
+            <CardTitle className="font-headline">Order Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-8">
             <FormField
@@ -118,7 +163,7 @@ export function OrderForm({ eventId }: { eventId: string }) {
                       {...field}
                     />
                   </FormControl>
-                   <FormDescription>
+                  <FormDescription>
                     Any special instructions for your personal shopper.
                   </FormDescription>
                   <FormMessage />
@@ -127,7 +172,9 @@ export function OrderForm({ eventId }: { eventId: string }) {
             />
           </CardContent>
           <CardFooter className="flex-row-reverse justify-between">
-            <Button type="submit" className="w-1/2 bg-primary hover:bg-primary/90 text-primary-foreground">Submit Order</Button>
+            <Button type="submit" disabled={isSubmitting} className="w-1/2 bg-primary hover:bg-primary/90 text-primary-foreground">
+                {isSubmitting ? <Loader2 className="animate-spin" /> : "Submit Order"}
+            </Button>
             <Button asChild variant="outline" className="w-1/2">
               <Link href={`/events/${eventId}`}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
