@@ -175,7 +175,7 @@ export function EventForm({ event }: EventFormProps) {
 
       if (isEditMode && event.id) {
         const eventRef = doc(firestore, "events", event.id);
-        await updateDocumentNonBlocking(eventRef, eventData);
+        updateDocumentNonBlocking(eventRef, eventData);
         toast({
           title: "Event Updated!",
           description: "Your Jastip event has been successfully updated.",
@@ -183,7 +183,7 @@ export function EventForm({ event }: EventFormProps) {
         router.push(`/events/${event.id}`);
       } else {
         const eventsCollection = collection(firestore, "events");
-        await addDocumentNonBlocking(eventsCollection, eventData);
+        addDocumentNonBlocking(eventsCollection, eventData);
         toast({
           title: "Event Created!",
           description: "Your new Jastip event has been successfully created.",
