@@ -102,7 +102,7 @@ export function EventForm({ event }: EventFormProps) {
       // NOTE: In a real app, you'd upload files to Firebase Storage here and get the URLs.
       // For this prototype, we'll use placeholder URLs or keep existing ones.
       const imageUrl = typeof data.image === 'string' ? data.image : `https://picsum.photos/seed/${data.name.replace(/\s/g, '')}/600/400`;
-      const catalogUrl = typeof data.catalog === 'string' ? data.catalog : (data.catalog?.[0] ? 'https://example.com/catalog.pdf' : undefined);
+      const catalogUrl = typeof data.catalog === 'string' ? data.catalog : (data.catalog?.[0] ? 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf' : undefined);
 
       const eventData = {
         name: data.name,
