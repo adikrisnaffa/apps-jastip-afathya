@@ -3,7 +3,7 @@
 
 import { useMemo, useState } from 'react';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
-import { collection, query, where, writeBatch } from "firebase/firestore";
+import { collection, query, where, writeBatch, doc } from "firebase/firestore";
 import OrderCard from "./OrderCard";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Truck, User, ChevronDown, PlusCircle, Receipt, Trash2 } from "lucide-react";
