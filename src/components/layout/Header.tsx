@@ -35,7 +35,7 @@ export default function Header() {
             className="flex items-center gap-2"
           >
             <Image 
-                src="https://firebasestudio.app/assets/logo/jastipnya-logo-color.png"
+                src="/jastip-logo.png"
                 alt="Jastip.nya by Afathya"
                 width={150}
                 height={50}
