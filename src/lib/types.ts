@@ -1,11 +1,6 @@
 import type { Timestamp } from "firebase/firestore";
 
-export type OrderStatus =
-  | "Placed"
-  | "Processing"
-  | "Shipped"
-  | "Completed"
-  | "Cancelled";
+export type OrderStatus = "Paid" | "Not Paid";
 
 export type Order = {
   id: string;

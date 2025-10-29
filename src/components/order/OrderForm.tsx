@@ -124,7 +124,7 @@ export function OrderForm({ eventId, order, defaultCustomerName }: OrderFormProp
           eventId: eventId,
           userId: user.uid,
           createdAt: Timestamp.now(),
-          status: "Placed" as const,
+          status: "Not Paid" as const,
         };
         await addDocumentNonBlocking(ordersCollection, newOrder);
         toast({

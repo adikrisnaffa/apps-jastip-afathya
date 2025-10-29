@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { deleteDoc, doc } from "firebase/firestore";
+import { deleteDoc, doc, updateDoc } from "firebase/firestore";
 import { useFirestore, useUser } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -20,10 +20,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Edit, Trash2 } from "lucide-react";
+import { Edit, Trash2, CreditCard } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import { deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 type OrderCardProps = {
   order: Order;
@@ -33,11 +33,8 @@ const statusConfig: Record<
   OrderStatus,
   { color: string; progress: number; label: string }
 > = {
-  Placed: { color: "bg-gray-500", progress: 10, label: "Order Placed" },
-  Processing: { color: "bg-orange-500", progress: 40, label: "Processing" },
-  Shipped: { color: "bg-blue-500", progress: 75, label: "Shipped" },
-  Completed: { color: "bg-green-600", progress: 100, label: "Completed" },
-  Cancelled: { color: "bg-red-600", progress: 0, label: "Cancelled" },
+  "Not Paid": { color: "bg-orange-500", progress: 50, label: "Awaiting Payment" },
+  "Paid": { color: "bg-green-600", progress: 100, label: "Payment Confirmed" },
 };
 
 export default function OrderCard({ order }: OrderCardProps) {
@@ -46,6 +43,7 @@ export default function OrderCard({ order }: OrderCardProps) {
   const { user } = useUser();
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   const handleDelete = async () => {
     if (!user || !firestore) {
@@ -63,6 +61,25 @@ export default function OrderCard({ order }: OrderCardProps) {
         toast({ title: "Error Deleting Order", description: error.message, variant: "destructive"});
     }
   }
+
+  const handleMarkAsPaid = async () => {
+    if (!user || !firestore) {
+        toast({ title: "Error", description: "You must be logged in to update an order.", variant: "destructive"});
+        return;
+    };
+    setIsUpdatingStatus(true);
+    const orderRef = doc(firestore, `users/${user.uid}/orders`, order.id);
+    try {
+        await updateDocumentNonBlocking(orderRef, { status: "Paid" });
+        toast({ title: "Order Updated", description: "The order has been marked as Paid." });
+    } catch (error: any) {
+        setIsUpdatingStatus(false);
+        toast({ title: "Error Updating Status", description: error.message, variant: "destructive"});
+    } finally {
+        setIsUpdatingStatus(false); // Ensure this runs even on success
+    }
+  }
+
 
   return (
     <Card className="flex flex-col transform hover:-translate-y-1 transition-transform duration-300 ease-in-out shadow-lg hover:shadow-2xl">
@@ -99,11 +116,15 @@ export default function OrderCard({ order }: OrderCardProps) {
           </p>
         </div>
       </CardContent>
-      <CardFooter className="grid grid-cols-2 gap-2">
+      <CardFooter className="grid grid-cols-3 gap-2">
         <Button asChild variant="secondary" size="sm">
             <Link href={`/order/${order.id}/edit?eventId=${order.eventId}`}>
                 <Edit className="mr-2 h-4 w-4" /> Edit
             </Link>
+        </Button>
+        <Button variant="outline" size="sm" onClick={handleMarkAsPaid} disabled={isUpdatingStatus || order.status === 'Paid'}>
+            <CreditCard className="mr-2 h-4 w-4" />
+            {isUpdatingStatus ? "..." : "Paid"}
         </Button>
         <AlertDialog>
           <AlertDialogTrigger asChild>

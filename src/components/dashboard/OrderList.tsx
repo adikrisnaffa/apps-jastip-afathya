@@ -1,12 +1,11 @@
-
 "use client";
 
 import { useMemo, useState } from 'react';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
-import { collection, query, where, writeBatch, doc } from "firebase/firestore";
+import { collection, query, where, writeBatch, doc, updateDoc } from "firebase/firestore";
 import OrderCard from "./OrderCard";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Truck, User, ChevronDown, PlusCircle, Receipt, Trash2 } from "lucide-react";
+import { Truck, User, PlusCircle, Receipt, Trash2, CreditCard } from "lucide-react";
 import type { Order } from "@/lib/types";
 import { Skeleton } from "../ui/skeleton";
 import {
@@ -41,6 +40,8 @@ export default function OrderList({ eventId }: OrderListProps) {
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState<string | null>(null);
+
 
   const ordersQuery = useMemoFirebase(() => {
     if (!firestore || !user?.uid) return null;
@@ -92,6 +93,36 @@ export default function OrderList({ eventId }: OrderListProps) {
       });
     } finally {
         setIsDeleting(null);
+    }
+  }
+
+  const handleMarkAllPaid = async (customerName: string) => {
+    if (!firestore || !user || !groupedOrders[customerName]) return;
+    
+    setIsUpdatingStatus(customerName);
+    try {
+      const batch = writeBatch(firestore);
+      const ordersToUpdate = groupedOrders[customerName];
+
+      ordersToUpdate.forEach(order => {
+        const orderRef = doc(firestore, `users/${user.uid}/orders`, order.id);
+        batch.update(orderRef, { status: "Paid" });
+      });
+
+      await batch.commit();
+
+      toast({
+        title: "Orders Updated",
+        description: `All orders for ${customerName} have been marked as Paid.`,
+      });
+    } catch (error: any) {
+       toast({
+        title: "Error Updating Orders",
+        description: error.message || `Could not update orders for ${customerName}.`,
+        variant: "destructive",
+      });
+    } finally {
+        setIsUpdatingStatus(null);
     }
   }
 
@@ -160,6 +191,10 @@ export default function OrderList({ eventId }: OrderListProps) {
                       <PlusCircle className="mr-2 h-4 w-4" />
                       Add Order
                     </Link>
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => handleMarkAllPaid(customerName)} disabled={isUpdatingStatus === customerName}>
+                        <CreditCard className="mr-2 h-4 w-4" />
+                        {isUpdatingStatus === customerName ? "Paying..." : "Paid"}
                   </Button>
                    <AlertDialog>
                         <AlertDialogTrigger asChild>
