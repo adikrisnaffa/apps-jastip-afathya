@@ -41,15 +41,19 @@ export default function EventDetailPage() {
 
   const { data: event, isLoading } = useDoc<JastipEvent>(eventRef);
   const eventDate = event?.date?.toDate();
-  const isOwner = user && event?.ownerId === user.uid;
+
+  // Determine if the logged-in user is the owner of the event.
+  const isOwner = useMemo(() => {
+    if (!user || !event) return false;
+    return user.uid === event.ownerId;
+  }, [user, event]);
 
   const handleDelete = async () => {
     if (!isOwner || !eventRef || !firestore) return;
     setIsDeleting(true);
     try {
         // This is a simplified approach. In a real-world app, you might want to
-        // delete all associated orders in a batch or a Cloud Function.
-        // For now, we only delete the event document.
+        // also delete all associated orders, perhaps using a Cloud Function for atomicity.
         await deleteDoc(eventRef);
         toast({
             title: "Event Deleted",
@@ -120,8 +124,8 @@ export default function EventDetailPage() {
                             <AlertDialogHeader>
                                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    This action cannot be undone. This will permanently delete the event
-                                    and all associated orders.
+                                    This action cannot be undone. This will permanently delete the event.
+                                    (Note: Associated orders will not be deleted automatically).
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -150,7 +154,7 @@ export default function EventDetailPage() {
       
       <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
         <h2 className="text-3xl font-bold font-headline text-foreground">
-          {isOwner ? "All Orders for this Event" : "My Orders"}
+          {isOwner ? "All Event Orders" : "My Orders"}
         </h2>
         {user && (
           <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground">
@@ -165,3 +169,5 @@ export default function EventDetailPage() {
     </div>
   );
 }
+
+    

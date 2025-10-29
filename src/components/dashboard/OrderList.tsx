@@ -43,37 +43,37 @@ export default function OrderList({ eventId, isOwner }: OrderListProps) {
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState<string | null>(null);
 
-  // The query depends on whether the user is the owner of the event
   const ordersQuery = useMemoFirebase(() => {
-    if (!firestore || !user?.uid) return null;
+    if (!firestore) return null;
 
-    let ordersCollectionRef = collection(firestore, `users/${user.uid}/orders`);
+    // Base collection reference. For owners, this is correct.
+    // For non-owners, they won't have permission to this path if the rules are correct,
+    // but the query logic below will filter it to their own orders anyway.
+    // In a multi-tenant owner setup, this would need to point to a general 'orders' collection
+    // or fetch from each user's subcollection, which is complex.
+    // Given the current model `users/{userId}/orders`, the owner can only see orders
+    // they created themselves. This is a limitation of the current data model if owners
+    // expect to see orders created by other users under their own subcollections.
+    // For this implementation, we assume owners create orders on behalf of users,
+    // or we only query the logged-in user's orders.
 
-    // If the user is the owner, they see all orders for the event.
-    // If not, they only see their own orders for the event.
-    // NOTE: This assumes orders are stored under the event owner's user ID.
-    // A more robust solution might have a top-level `orders` collection.
-    // For this implementation, we will query based on who is viewing.
-    
-    // The current structure is `users/{userId}/orders`. This means an owner
-    // can only see their own orders. To let owners see all orders, we'd need
-    // to change the data model. Let's assume for now the owner is also the one
-    // creating orders on behalf of others, so they are all under their UID.
-    // A regular user would have their *own* `users/{theirId}/orders` collection.
+    const ownerIdForQuery = isOwner && user ? user.uid : user?.uid;
+    if (!ownerIdForQuery) return null;
 
-    let q = query(
-      ordersCollectionRef,
-      where("eventId", "==", eventId),
-    );
+    let ordersCollectionRef = collection(firestore, `users/${ownerIdForQuery}/orders`);
 
-    // If the user is NOT the owner, we further filter to show only orders
-    // created BY them (assuming a userId field on the order)
-    if (!isOwner) {
-      q = query(q, where("userId", "==", user.uid));
+    if (isOwner) {
+      // Owner sees all orders for this event under their own user document.
+      return query(ordersCollectionRef, where("eventId", "==", eventId));
+    } else if (user) {
+      // Non-owner only sees their own orders for this event.
+      // This path is already specific to the user, so we just filter by event.
+      let userOrdersCollectionRef = collection(firestore, `users/${user.uid}/orders`);
+      return query(userOrdersCollectionRef, where("eventId", "==", eventId));
     }
     
-    return q;
-  }, [firestore, user?.uid, eventId, isOwner]);
+    return null;
+  }, [firestore, user, eventId, isOwner]);
 
   const { data: orders, isLoading } = useCollection<Order>(ordersQuery);
 
@@ -183,23 +183,36 @@ export default function OrderList({ eventId, isOwner }: OrderListProps) {
       </Alert>
     );
   }
+  
+  const customerKeys = Object.keys(groupedOrders);
+
+  if (!isOwner) {
+    // Regular user view: just show their own orders without the accordion grouping
+     return (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 pt-4">
+            {(orders || []).map((order) => (
+                <OrderCard key={order.id} order={order} isOwner={isOwner}/>
+            ))}
+        </div>
+    )
+  }
 
   return (
     <Accordion type="multiple" className="w-full space-y-4">
-      {Object.entries(groupedOrders).map(([customerName, customerOrders]) => (
+      {customerKeys.map((customerName) => (
         <AccordionItem value={customerName} key={customerName} className="border-b-0 rounded-lg bg-card text-card-foreground shadow-md transition-all">
             <div className="flex items-center justify-between w-full p-4 font-semibold text-left">
                 <AccordionTrigger className="flex-1 p-0 hover:no-underline">
                     <div className="flex items-center gap-4">
                       <User className="h-5 w-5 text-primary" />
                       <span className="text-lg font-headline">{customerName}</span>
-                      <Badge variant="secondary">{customerOrders.length} Order(s)</Badge>
+                      <Badge variant="secondary">{groupedOrders[customerName].length} Order(s)</Badge>
                     </div>
                 </AccordionTrigger>
                 
                 {isOwner && (
                   <div className="flex items-center gap-2 pl-4" onClick={(e) => e.stopPropagation()}>
-                    <NotaDialog orders={customerOrders} customerName={customerName}>
+                    <NotaDialog orders={groupedOrders[customerName]} customerName={customerName}>
                       <Button variant="outline" size="sm">
                         <Receipt className="mr-2 h-4 w-4" />
                         View Receipt
@@ -232,7 +245,7 @@ export default function OrderList({ eventId, isOwner }: OrderListProps) {
                               <AlertDialogHeader>
                                   <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                      This will permanently delete all {customerOrders.length} orders for <strong>{customerName}</strong>. This action cannot be undone.
+                                      This will permanently delete all {groupedOrders[customerName].length} orders for <strong>{customerName}</strong>. This action cannot be undone.
                                   </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
@@ -248,7 +261,7 @@ export default function OrderList({ eventId, isOwner }: OrderListProps) {
             </div>
             <AccordionContent className="pt-0 p-4">
                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 pt-4 border-t">
-                    {customerOrders.map((order) => (
+                    {groupedOrders[customerName].map((order) => (
                         <OrderCard key={order.id} order={order} isOwner={isOwner}/>
                     ))}
                 </div>
@@ -258,3 +271,5 @@ export default function OrderList({ eventId, isOwner }: OrderListProps) {
     </Accordion>
   );
 }
+
+    

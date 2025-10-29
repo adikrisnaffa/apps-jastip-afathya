@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { doc } from "firebase/firestore";
+import { doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { useFirestore, useUser } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -47,25 +47,23 @@ export default function OrderCard({ order, isOwner }: OrderCardProps) {
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   const handleDelete = async () => {
-    if (!user || !firestore) {
-        toast({ title: "Error", description: "You must be logged in to delete an order.", variant: "destructive"});
-        return;
-    };
-    // Authorization: Only owner or the user who created the order can delete
-    if (!isOwner && user.uid !== order.userId) {
+    if (!user || !firestore) return;
+    
+    // The user who created the order can delete it. The event owner can also delete it.
+    const canDelete = isOwner || user.uid === order.userId;
+    if (!canDelete) {
         toast({ title: "Unauthorized", description: "You don't have permission to delete this order.", variant: "destructive"});
         return;
     }
+
     setIsDeleting(true);
-    // Note: The path depends on who owns the order data.
-    // If orders are always under the event owner, this is correct.
-    // If users store their own orders, this path needs to change.
-    // Assuming event owner stores all orders:
-    const orderOwnerId = isOwner ? user.uid : order.userId;
-    const orderRef = doc(firestore, `users/${orderOwnerId}/orders`, order.id);
+    // Important: The order is always stored under the user who CREATED it.
+    const orderRef = doc(firestore, `users/${order.userId}/orders`, order.id);
+    
     try {
-        await deleteDocumentNonBlocking(orderRef);
+        await deleteDoc(orderRef); // Using await for immediate UI feedback
         toast({ title: "Order Deleted", description: "The order has been successfully removed." });
+        // The component will unmount as the collection re-queries. No need to setIsDeleting(false).
     } catch (error: any) {
         setIsDeleting(false);
         toast({ title: "Error Deleting Order", description: error.message, variant: "destructive"});
@@ -73,14 +71,16 @@ export default function OrderCard({ order, isOwner }: OrderCardProps) {
   }
 
   const handleMarkAsPaid = async () => {
-    if (!user || !firestore || !isOwner) { // Only owner can mark as paid
-        toast({ title: "Error", description: "Only the event owner can update payment status.", variant: "destructive"});
+    // Only the event owner can mark as paid.
+    if (!user || !firestore || !isOwner) {
+        toast({ title: "Unauthorized", description: "Only the event owner can update payment status.", variant: "destructive"});
         return;
     };
     setIsUpdatingStatus(true);
-    const orderRef = doc(firestore, `users/${user.uid}/orders`, order.id);
+    // The order is under the user who created it. The owner needs write access via security rules.
+    const orderRef = doc(firestore, `users/${order.userId}/orders`, order.id);
     try {
-        await updateDocumentNonBlocking(orderRef, { status: "Paid" });
+        await updateDoc(orderRef, { status: "Paid" });
         toast({ title: "Order Updated", description: "The order has been marked as Paid." });
     } catch (error: any) {
         toast({ title: "Error Updating Status", description: error.message, variant: "destructive"});
@@ -89,7 +89,7 @@ export default function OrderCard({ order, isOwner }: OrderCardProps) {
     }
   }
 
-  const canEdit = isOwner || (user && user.uid === order.userId);
+  const canEdit = user && user.uid === order.userId;
   const canDelete = isOwner || (user && user.uid === order.userId);
 
   return (
@@ -168,3 +168,5 @@ export default function OrderCard({ order, isOwner }: OrderCardProps) {
     </Card>
   );
 }
+
+    
