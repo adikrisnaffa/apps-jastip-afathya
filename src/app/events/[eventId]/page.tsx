@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useMemo, useState } from "react";
 import { useDoc } from "@/firebase/firestore/use-doc";
-import { doc, deleteDoc } from "firebase/firestore";
+import { doc, deleteDoc, writeBatch } from "firebase/firestore";
 import { useFirestore, useMemoFirebase, useUser } from "@/firebase/provider";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
@@ -44,10 +45,12 @@ export default function EventDetailPage() {
   const isOwner = user && event?.ownerId === user.uid;
 
   const handleDelete = async () => {
-    if (!isOwner || !eventRef) return;
+    if (!isOwner || !eventRef || !firestore) return;
     setIsDeleting(true);
     try {
-        await deleteDocumentNonBlocking(eventRef);
+        // This is a simplified approach. In a real-world app, you might want to
+        // delete all associated orders in a batch or a Cloud Function.
+        await deleteDoc(eventRef);
         toast({
             title: "Event Deleted",
             description: "The event has been successfully removed.",
