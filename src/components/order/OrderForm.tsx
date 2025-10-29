@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Sparkles, ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 const orderFormSchema = z.object({
   itemDescription: z
@@ -64,24 +64,6 @@ export function OrderForm({ eventId }: { eventId: string }) {
     router.push(`/events/${eventId}`);
   }
 
-  function onRefineDescription() {
-    const currentDescription = form.getValues("itemDescription");
-    if (!currentDescription) {
-        toast({
-            title: "Cannot Refine",
-            description: "Please enter a description first.",
-            variant: "destructive"
-        })
-        return;
-    }
-    const refined = `High-quality, original version of: "${currentDescription}". Please ensure authenticity and find the best possible price.`;
-    form.setValue("itemDescription", refined, { shouldValidate: true });
-    toast({
-        title: "Description Refined!",
-        description: "We've enhanced your description for clarity."
-    });
-  }
-
   return (
     <Card className="shadow-xl">
       <Form {...form}>
@@ -97,16 +79,11 @@ export function OrderForm({ eventId }: { eventId: string }) {
                 <FormItem>
                   <FormLabel>Item Description</FormLabel>
                   <FormControl>
-                    <div className="relative">
-                      <Textarea
-                        placeholder="e.g., 'Limited edition sneakers, black, size 10'"
-                        className="resize-y pr-10"
-                        {...field}
-                      />
-                      <Button type="button" variant="ghost" size="icon" className="absolute top-1/2 right-1 -translate-y-1/2 h-8 w-8 text-primary" onClick={onRefineDescription} aria-label="Refine description with AI">
-                          <Sparkles className="h-5 w-5"/>
-                      </Button>
-                    </div>
+                    <Textarea
+                      placeholder="e.g., 'Limited edition sneakers, black, size 10'"
+                      className="resize-y"
+                      {...field}
+                    />
                   </FormControl>
                   <FormDescription>
                     Be as specific as possible for the best results.
