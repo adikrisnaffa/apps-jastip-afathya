@@ -23,9 +23,9 @@ export default function EditOrderPage() {
   const { user } = useUser();
 
   const orderRef = useMemoFirebase(() => {
-    if (!firestore || !user || !orderId) return null;
-    return doc(firestore, `users/${user.uid}/orders`, orderId);
-  }, [firestore, user, orderId]);
+    if (!firestore || !orderId) return null;
+    return doc(firestore, 'orders', orderId);
+  }, [firestore, orderId]);
 
   const { data: order, isLoading } = useDoc<Order>(orderRef);
   
@@ -56,6 +56,28 @@ export default function EditOrderPage() {
           </div>
       )
   }
+
+  // A user can only edit an order if they created it.
+  if (user?.uid !== order.userId) {
+    return (
+      <div className="container mx-auto max-w-2xl py-12 px-4">
+          <Alert variant="destructive">
+            <ShieldAlert className="h-4 w-4" />
+            <AlertTitle>Access Denied</AlertTitle>
+            <AlertDescription>
+                You do not have permission to edit this order.
+            </AlertDescription>
+         </Alert>
+          <Button asChild variant="link" className="mt-4">
+            <Link href={eventId ? `/events/${eventId}` : '/'}>
+                <ArrowLeft className="mr-2 h-4 w-4"/>
+                Back to Event
+            </Link>
+        </Button>
+      </div>
+    )
+  }
+
    if (!eventId) {
       return (
           <div className="container mx-auto max-w-2xl py-12 px-4">

@@ -111,14 +111,14 @@ export function OrderForm({ eventId, order, defaultCustomerName }: OrderFormProp
 
     try {
       if (isEditMode && order.id) {
-        const orderRef = doc(firestore, "users", user.uid, "orders", order.id);
-        await updateDocumentNonBlocking(orderRef, data);
+        const orderRef = doc(firestore, "orders", order.id);
+        updateDocumentNonBlocking(orderRef, data);
         toast({
           title: "Order Updated!",
           description: "The order details have been successfully updated.",
         });
       } else {
-        const ordersCollection = collection(firestore, "users", user.uid, "orders");
+        const ordersCollection = collection(firestore, "orders");
         const newOrder = {
           ...data,
           eventId: eventId,
@@ -126,7 +126,7 @@ export function OrderForm({ eventId, order, defaultCustomerName }: OrderFormProp
           createdAt: Timestamp.now(),
           status: "Not Paid" as const,
         };
-        await addDocumentNonBlocking(ordersCollection, newOrder);
+        addDocumentNonBlocking(ordersCollection, newOrder);
         toast({
           title: "Order Submitted!",
           description: "We've received your order and will begin processing it shortly.",

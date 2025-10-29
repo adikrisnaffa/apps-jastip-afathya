@@ -13,7 +13,11 @@
         },
         "userId": {
           "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N Order). The ID of the user who placed the order."
+          "description": "The ID of the user who placed the order."
+        },
+        "eventId": {
+            "type": "string",
+            "description": "The ID of the event this order belongs to."
         },
         "customerName": {
           "type": "string",
@@ -27,37 +31,35 @@
           "type": "number",
           "description": "Quantity of the item being ordered."
         },
-        "specialRequests": {
+        "specificRequests": {
           "type": "string",
           "description": "Any special requests or instructions for the order."
         },
-        "orderDate": {
+        "createdAt": {
           "type": "string",
           "description": "The date and time the order was placed.",
           "format": "date-time"
         },
         "status": {
           "type": "string",
-          "description": "The current status of the order (e.g., placed, processing, completed)."
+          "description": "The current status of the order (e.g., Paid, Not Paid).",
+          "enum": ["Paid", "Not Paid"]
         },
-        "totalCost": {
+        "price": {
           "type": "number",
-          "description": "The total cost of the order."
-        },
-        "notaId": {
-          "type": "string",
-          "description": "Reference to Nota. (Relationship: Nota 1:1 Order). The ID of the generated nota/receipt for the order."
+          "description": "The price per item."
         }
       },
       "required": [
         "id",
         "userId",
+        "eventId",
         "customerName",
         "itemDescription",
         "quantity",
-        "orderDate",
+        "createdAt",
         "status",
-        "totalCost"
+        "price"
       ]
     },
     "User": {
@@ -92,42 +94,6 @@
         "id",
         "name",
         "email"
-      ]
-    },
-    "Nota": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Nota",
-      "type": "object",
-      "description": "Represents a formatted receipt (nota) for an order.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Nota entity."
-        },
-        "orderId": {
-          "type": "string",
-          "description": "Reference to Order. (Relationship: Order 1:1 Nota). The ID of the order this nota is for."
-        },
-        "notaDate": {
-          "type": "string",
-          "description": "The date the nota was generated.",
-          "format": "date-time"
-        },
-        "items": {
-          "type": "string",
-          "description": "Itemized list of products in order",
-          "format": "string"
-        },
-        "totalAmount": {
-          "type": "number",
-          "description": "The total amount due, matching the Order's totalCost."
-        }
-      },
-      "required": [
-        "id",
-        "orderId",
-        "notaDate",
-        "totalAmount"
       ]
     },
     "JastipEvent": {
@@ -171,7 +137,7 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores user profile information. Path-based ownership enables secure access rules based on {userId}.",
+          "description": "Stores user profile information.",
           "params": [
             {
               "name": "userId",
@@ -180,46 +146,18 @@
           ]
         }
       },
-      {
-        "path": "/users/{userId}/orders/{orderId}",
+       {
+        "path": "/orders/{orderId}",
         "definition": {
           "entityName": "Order",
           "schema": {
             "$ref": "#/backend/entities/Order"
           },
-          "description": "Stores orders associated with a specific user. Path-based ownership enables secure access rules based on {userId}. Includes userId to support listing orders by user.",
+          "description": "Stores all orders for all events. Security rules will be needed to control access.",
           "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user who placed the order."
-            },
             {
               "name": "orderId",
               "description": "The unique identifier for the order."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/orders/{orderId}/notas/{notaId}",
-        "definition": {
-          "entityName": "Nota",
-          "schema": {
-            "$ref": "#/backend/entities/Nota"
-          },
-          "description": "Stores notas/receipts associated with a specific order.  Path-based ownership enables secure access rules based on {userId} and {orderId}.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user who placed the order."
-            },
-            {
-              "name": "orderId",
-              "description": "The unique identifier for the order."
-            },
-            {
-              "name": "notaId",
-              "description": "The unique identifier for the nota."
             }
           ]
         }
@@ -239,6 +177,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to provide a secure and scalable solution for the JasTip Express application, prioritizing Authorization Independence, Clarity of Intent, and adherence to DBAC principles.  The structure uses path-based ownership for user-related data and explicitly defines the schemas to ensure data clarity and predictability.\n\n**Authorization Independence:**\n\n*   The structure leverages path-based ownership for entities related to the user. For example, Orders are stored under `/users/{userId}/orders/{orderId}`. This eliminates the need for `get()` calls in security rules to determine ownership, as access control can be directly enforced based on the path.\n\n**QAPs (Rules are not Filters):**\n\n*   The use of structural segregation, with orders stored directly under user documents (`/users/{userId}/orders/{orderId}`), ensures that listing operations can be securely performed based on the `userId` without needing to filter based on document content. Only the user has read access to their specific `/users/{userId}/orders` collection.\n\n*   The Nota subcollection follows the same pattern, ensuring secure access to receipt data based on the parent Order document and user ownership.\n\n* Added an 'events' collection to store Jastip events. Events are public, and can be managed by any authenticated user."
+    "reasoning": "The Firestore structure uses a simple, flat structure for key collections like 'events' and 'orders'. User profiles are kept separate in a 'users' collection. This design is straightforward and relies on Firestore queries with 'where' clauses to fetch related data (e.g., getting all orders for a specific event). Security rules will be crucial to ensure users can only access the data they are permitted to see."
   }
 }
