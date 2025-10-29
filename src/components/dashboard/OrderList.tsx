@@ -5,7 +5,7 @@ import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebas
 import { collection, query, where } from "firebase/firestore";
 import OrderCard from "./OrderCard";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, Truck, User, ChevronDown, PlusCircle } from "lucide-react";
+import { Loader2, Truck, User, ChevronDown, PlusCircle, Receipt } from "lucide-react";
 import type { Order } from "@/lib/types";
 import { Skeleton } from "../ui/skeleton";
 import {
@@ -17,6 +17,7 @@ import {
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import Link from 'next/link';
+import { NotaDialog } from './NotaDialog';
 
 type OrderListProps = {
   eventId: string;
@@ -88,13 +89,19 @@ export default function OrderList({ eventId }: OrderListProps) {
     <Accordion type="multiple" className="w-full space-y-4">
       {Object.entries(groupedOrders).map(([customerName, customerOrders]) => (
         <AccordionItem value={customerName} key={customerName} className="border-b-0">
-            <AccordionTrigger className="flex items-center justify-between w-full p-4 font-semibold text-left bg-card text-card-foreground rounded-lg shadow-md hover:bg-card/90 transition-all [&[data-state=open]>svg]:rotate-180">
+            <AccordionTrigger className="flex items-center justify-between w-full p-4 font-semibold text-left bg-card text-card-foreground rounded-lg shadow-md hover:bg-card/90 transition-all [&[data-state=open]>svg:last-child]:rotate-180">
                 <div className='flex items-center gap-4'>
                     <User className="h-5 w-5 text-primary" />
                     <span className='text-lg font-headline'>{customerName}</span>
                     <Badge variant="secondary">{customerOrders.length} Order(s)</Badge>
                 </div>
                 <div className="flex items-center gap-2">
+                    <NotaDialog orders={customerOrders} customerName={customerName}>
+                      <Button variant="outline" size="sm" onClick={(e) => e.stopPropagation()}>
+                          <Receipt className="mr-2 h-4 w-4" />
+                          View Receipt
+                      </Button>
+                    </NotaDialog>
                     <Button asChild variant="ghost" size="sm" onClick={(e) => e.stopPropagation()}>
                         <Link href={`/order/new?eventId=${eventId}&customerName=${encodeURIComponent(customerName)}`}>
                             <PlusCircle className="mr-2 h-4 w-4" />

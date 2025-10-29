@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { NotaDialog } from "./NotaDialog";
 import { deleteDoc, doc } from "firebase/firestore";
 import { useFirestore, useUser } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
@@ -93,14 +92,14 @@ export default function OrderCard({ order }: OrderCardProps) {
           <p className="text-sm text-muted-foreground pt-2">
             Quantity: <span className="font-semibold text-foreground">{order.quantity}</span>
           </p>
+           <p className="text-sm text-muted-foreground">
+            Price: <span className="font-semibold text-foreground">
+                {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(order.price || 0)}
+            </span>
+          </p>
         </div>
       </CardContent>
-      <CardFooter className="grid grid-cols-3 gap-2">
-        <NotaDialog order={order}>
-          <Button variant="outline" className="w-full">
-            Receipt
-          </Button>
-        </NotaDialog>
+      <CardFooter className="grid grid-cols-2 gap-2">
         <Button asChild variant="secondary" size="sm">
             <Link href={`/order/${order.id}/edit?eventId=${order.eventId}`}>
                 <Edit className="mr-2 h-4 w-4" /> Edit
