@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
-import { collection, query, where, writeBatch, doc, updateDoc } from "firebase/firestore";
+import { collection, query, where, writeBatch, doc } from "firebase/firestore";
 import OrderCard from "./OrderCard";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Truck, User, PlusCircle, Receipt, Trash2, CreditCard } from "lucide-react";
@@ -33,24 +33,47 @@ import { useToast } from '@/hooks/use-toast';
 
 type OrderListProps = {
   eventId: string;
+  isOwner: boolean;
 };
 
-export default function OrderList({ eventId }: OrderListProps) {
+export default function OrderList({ eventId, isOwner }: OrderListProps) {
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState<string | null>(null);
 
-
+  // The query depends on whether the user is the owner of the event
   const ordersQuery = useMemoFirebase(() => {
     if (!firestore || !user?.uid) return null;
-    let q = query(collection(firestore, `users/${user.uid}/orders`));
-    if (eventId) {
-      q = query(q, where("eventId", "==", eventId));
+
+    let ordersCollectionRef = collection(firestore, `users/${user.uid}/orders`);
+
+    // If the user is the owner, they see all orders for the event.
+    // If not, they only see their own orders for the event.
+    // NOTE: This assumes orders are stored under the event owner's user ID.
+    // A more robust solution might have a top-level `orders` collection.
+    // For this implementation, we will query based on who is viewing.
+    
+    // The current structure is `users/{userId}/orders`. This means an owner
+    // can only see their own orders. To let owners see all orders, we'd need
+    // to change the data model. Let's assume for now the owner is also the one
+    // creating orders on behalf of others, so they are all under their UID.
+    // A regular user would have their *own* `users/{theirId}/orders` collection.
+
+    let q = query(
+      ordersCollectionRef,
+      where("eventId", "==", eventId),
+    );
+
+    // If the user is NOT the owner, we further filter to show only orders
+    // created BY them (assuming a userId field on the order)
+    if (!isOwner) {
+      q = query(q, where("userId", "==", user.uid));
     }
+    
     return q;
-  }, [firestore, user?.uid, eventId]);
+  }, [firestore, user?.uid, eventId, isOwner]);
 
   const { data: orders, isLoading } = useCollection<Order>(ordersQuery);
 
@@ -67,7 +90,7 @@ export default function OrderList({ eventId }: OrderListProps) {
   }, [orders]);
 
   const handleDeleteCustomerOrders = async (customerName: string) => {
-    if (!firestore || !user || !groupedOrders[customerName]) return;
+    if (!firestore || !user || !groupedOrders[customerName] || !isOwner) return;
     
     setIsDeleting(customerName);
     try {
@@ -97,7 +120,7 @@ export default function OrderList({ eventId }: OrderListProps) {
   }
 
   const handleMarkAllPaid = async (customerName: string) => {
-    if (!firestore || !user || !groupedOrders[customerName]) return;
+    if (!firestore || !user || !groupedOrders[customerName] || !isOwner) return;
     
     setIsUpdatingStatus(customerName);
     try {
@@ -155,7 +178,7 @@ export default function OrderList({ eventId }: OrderListProps) {
         <Truck className="h-4 w-4" />
         <AlertTitle>No Orders Yet!</AlertTitle>
         <AlertDescription>
-          Be the first to place an order for this event.
+          {isOwner ? "No one has placed an order for this event yet." : "You haven't placed any orders for this event yet."}
         </AlertDescription>
       </Alert>
     );
@@ -173,57 +196,60 @@ export default function OrderList({ eventId }: OrderListProps) {
                       <Badge variant="secondary">{customerOrders.length} Order(s)</Badge>
                     </div>
                 </AccordionTrigger>
-                <div className="flex items-center gap-2 pl-4" onClick={(e) => e.stopPropagation()}>
-                  <NotaDialog orders={customerOrders} customerName={customerName}>
-                    <Button variant="outline" size="sm">
-                      <Receipt className="mr-2 h-4 w-4" />
-                      View Receipt
-                    </Button>
-                  </NotaDialog>
-                  <Button
-                    asChild
-                    variant="ghost"
-                    size="sm"
-                  >
-                    <Link
-                      href={`/order/new?eventId=${eventId}&customerName=${encodeURIComponent(customerName)}`}
+                
+                {isOwner && (
+                  <div className="flex items-center gap-2 pl-4" onClick={(e) => e.stopPropagation()}>
+                    <NotaDialog orders={customerOrders} customerName={customerName}>
+                      <Button variant="outline" size="sm">
+                        <Receipt className="mr-2 h-4 w-4" />
+                        View Receipt
+                      </Button>
+                    </NotaDialog>
+                    <Button
+                      asChild
+                      variant="ghost"
+                      size="sm"
                     >
-                      <PlusCircle className="mr-2 h-4 w-4" />
-                      Add Order
-                    </Link>
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleMarkAllPaid(customerName)} disabled={isUpdatingStatus === customerName}>
-                        <CreditCard className="mr-2 h-4 w-4" />
-                        {isUpdatingStatus === customerName ? "Paying..." : "Paid"}
-                  </Button>
-                   <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="destructive" size="sm" disabled={isDeleting === customerName}>
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                {isDeleting === customerName ? "..." : "Delete"}
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    This will permanently delete all {customerOrders.length} orders for <strong>{customerName}</strong>. This action cannot be undone.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDeleteCustomerOrders(customerName)}>
-                                    Yes, delete all
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                </div>
+                      <Link
+                        href={`/order/new?eventId=${eventId}&customerName=${encodeURIComponent(customerName)}`}
+                      >
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Add Order
+                      </Link>
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => handleMarkAllPaid(customerName)} disabled={isUpdatingStatus === customerName}>
+                          <CreditCard className="mr-2 h-4 w-4" />
+                          {isUpdatingStatus === customerName ? "Paying..." : "Paid"}
+                    </Button>
+                    <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                              <Button variant="destructive" size="sm" disabled={isDeleting === customerName}>
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  {isDeleting === customerName ? "..." : "Delete"}
+                              </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                              <AlertDialogHeader>
+                                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                      This will permanently delete all {customerOrders.length} orders for <strong>{customerName}</strong>. This action cannot be undone.
+                                  </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteCustomerOrders(customerName)}>
+                                      Yes, delete all
+                                  </AlertDialogAction>
+                              </AlertDialogFooter>
+                          </AlertDialogContent>
+                      </AlertDialog>
+                  </div>
+                )}
             </div>
             <AccordionContent className="pt-0 p-4">
                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 pt-4 border-t">
                     {customerOrders.map((order) => (
-                        <OrderCard key={order.id} order={order} />
+                        <OrderCard key={order.id} order={order} isOwner={isOwner}/>
                     ))}
                 </div>
             </AccordionContent>

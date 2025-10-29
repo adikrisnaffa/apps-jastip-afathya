@@ -3,13 +3,13 @@
 
 import { useMemo, useState } from "react";
 import { useDoc } from "@/firebase/firestore/use-doc";
-import { doc, deleteDoc, writeBatch } from "firebase/firestore";
+import { doc, deleteDoc } from "firebase/firestore";
 import { useFirestore, useMemoFirebase, useUser } from "@/firebase/provider";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import OrderList from "@/components/dashboard/OrderList";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, ArrowLeft, Edit, Trash2, FileText, Download } from "lucide-react";
+import { PlusCircle, ArrowLeft, Edit, Trash2, Download } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { JastipEvent } from "@/lib/types";
 import {
@@ -24,7 +24,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 export default function EventDetailPage() {
   const params = useParams();
@@ -50,6 +49,7 @@ export default function EventDetailPage() {
     try {
         // This is a simplified approach. In a real-world app, you might want to
         // delete all associated orders in a batch or a Cloud Function.
+        // For now, we only delete the event document.
         await deleteDoc(eventRef);
         toast({
             title: "Event Deleted",
@@ -150,16 +150,18 @@ export default function EventDetailPage() {
       
       <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
         <h2 className="text-3xl font-bold font-headline text-foreground">
-          Orders for this Event
+          {isOwner ? "All Orders for this Event" : "My Orders"}
         </h2>
-        <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground">
-          <Link href={`/order/new?eventId=${event.id}`}>
-            <PlusCircle className="mr-2 h-5 w-5" />
-            New Order
-          </Link>
-        </Button>
+        {user && (
+          <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground">
+            <Link href={`/order/new?eventId=${event.id}`}>
+              <PlusCircle className="mr-2 h-5 w-5" />
+              New Order
+            </Link>
+          </Button>
+        )}
       </div>
-      <OrderList eventId={event.id} />
+      <OrderList eventId={event.id} isOwner={isOwner} />
     </div>
   );
 }

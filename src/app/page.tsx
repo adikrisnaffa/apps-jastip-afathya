@@ -1,7 +1,7 @@
 "use client";
 
 import { useCollection, useUser } from "@/firebase";
-import { collection, query, orderBy } from "firebase/firestore";
+import { collection, query, orderBy, where } from "firebase/firestore";
 import { useFirestore, useMemoFirebase } from "@/firebase/provider";
 import EventCard from "@/components/events/EventCard";
 import type { JastipEvent } from "@/lib/types";
@@ -13,6 +13,10 @@ import { PlusCircle } from "lucide-react";
 export default function Home() {
   const firestore = useFirestore();
   const { user } = useUser();
+
+  // For now, let's assume any logged in user can create an event.
+  // A future improvement would be to have specific roles.
+  const canCreateEvents = !!user;
 
   const eventsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -32,7 +36,7 @@ export default function Home() {
         </p>
       </div>
 
-      {user && (
+      {canCreateEvents && (
           <div className="text-center mb-12">
             <Button asChild>
                 <Link href="/events/new">
@@ -61,7 +65,7 @@ export default function Home() {
 
       {!isLoading && !events?.length && (
         <div className="text-center text-muted-foreground mt-8">
-          <p>No events found. Create a new one to get started!</p>
+          <p>No events found. {canCreateEvents && "Create a new one to get started!"}</p>
         </div>
       )}
     </div>
