@@ -91,6 +91,51 @@ export default function OrderCard({ order, isOwner }: OrderCardProps) {
 
   const canEdit = user && user.uid === order.userId;
   const canDelete = isOwner || (user && user.uid === order.userId);
+  
+  if (!config) {
+    // Gracefully handle orders with a legacy or undefined status
+    return (
+        <Card className="flex flex-col transform hover:-translate-y-1 transition-transform duration-300 ease-in-out shadow-lg hover:shadow-2xl opacity-70">
+            <CardHeader>
+                <div className="flex justify-between items-start">
+                    <div>
+                        <CardTitle className="font-headline text-lg">{order.itemDescription}</CardTitle>
+                        <CardDescription>Order ID: {order.id}</CardDescription>
+                    </div>
+                    <Badge className="bg-gray-400 text-white">
+                        {order.status || 'Unknown'}
+                    </Badge>
+                </div>
+            </CardHeader>
+            <CardContent className="flex-grow">
+                 <p className="text-sm text-muted-foreground">This order has an unknown status and cannot be processed normally.</p>
+            </CardContent>
+            <CardFooter>
+                 {canDelete && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="sm" disabled={isDeleting}>
+                          <Trash2 className="mr-2 h-4 w-4" /> {isDeleting ? "..." : "Delete"}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete this order?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently delete the order for &quot;{order.itemDescription}&quot;. This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleDelete}>Confirm</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                )}
+            </CardFooter>
+        </Card>
+    );
+  }
 
   return (
     <Card className="flex flex-col transform hover:-translate-y-1 transition-transform duration-300 ease-in-out shadow-lg hover:shadow-2xl">
@@ -168,5 +213,3 @@ export default function OrderCard({ order, isOwner }: OrderCardProps) {
     </Card>
   );
 }
-
-    
