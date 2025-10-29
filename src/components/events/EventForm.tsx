@@ -5,8 +5,9 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { addDoc, collection, doc, Timestamp, updateDoc } from "firebase/firestore";
+import { collection, doc, Timestamp } from "firebase/firestore";
 import { useFirestore, useUser } from "@/firebase";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -21,12 +22,22 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { ArrowLeft, Loader2 } from "lucide-react";
-import { addDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import {
+  addDocumentNonBlocking,
+  updateDocumentNonBlocking,
+} from "@/firebase/non-blocking-updates";
 import type { JastipEvent } from "@/lib/types";
 
-// Helper for file size validation
+// Helper for file validation
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 const ACCEPTED_PDF_TYPES = ["application/pdf"];
@@ -41,19 +52,34 @@ const eventFormSchema = z.object({
   date: z
     .string({ required_error: "Please select a date." })
     .refine((val) => !isNaN(Date.parse(val)), { message: "Invalid date format." }),
-  image: z.any()
-    .refine((files) => files?.length === 1 || typeof files === 'string', "Image is required.")
-    .refine((files) => typeof files === 'string' || files?.[0]?.size <= MAX_FILE_SIZE, `Max image size is 5MB.`)
+  image: z
+    .any()
+    .refine((files) => files?.length === 1 || typeof files === "string", "Image is required.")
     .refine(
-      (files) => typeof files === 'string' || ACCEPTED_IMAGE_TYPES.includes(files?.[0]?.type),
+      (files) => typeof files === "string" || files?.[0]?.size <= MAX_FILE_SIZE,
+      `Max image size is 5MB.`
+    )
+    .refine(
+      (files) => typeof files === "string" || ACCEPTED_IMAGE_TYPES.includes(files?.[0]?.type),
       ".jpg, .jpeg, .png and .webp files are accepted."
     ),
-  catalog: z.any()
+  catalog: z
+    .any()
     .optional()
-    .refine((files) => files?.length === 0 || files?.length === 1 || typeof files === 'string', "Only one catalog file is allowed.")
-    .refine((files) => typeof files === 'string' || !files?.[0] || files?.[0]?.size <= MAX_FILE_SIZE, `Max catalog size is 5MB.`)
     .refine(
-      (files) => typeof files === 'string' || !files?.[0] || ACCEPTED_PDF_TYPES.includes(files?.[0]?.type),
+      (files) => files?.length === 0 || files?.length === 1 || typeof files === "string",
+      "Only one catalog file is allowed."
+    )
+    .refine(
+      (files) =>
+        typeof files === "string" || !files?.[0] || files?.[0]?.size <= MAX_FILE_SIZE,
+      `Max catalog size is 5MB.`
+    )
+    .refine(
+      (files) =>
+        typeof files === "string" ||
+        !files?.[0] ||
+        ACCEPTED_PDF_TYPES.includes(files?.[0]?.type),
       "Only .pdf files are accepted for the catalog."
     ),
 });
@@ -61,8 +87,8 @@ const eventFormSchema = z.object({
 type EventFormValues = z.infer<typeof eventFormSchema>;
 
 type EventFormProps = {
-    event?: JastipEvent;
-}
+  event?: JastipEvent;
+};
 
 export function EventForm({ event }: EventFormProps) {
   const router = useRouter();
@@ -71,54 +97,82 @@ export function EventForm({ event }: EventFormProps) {
   const { user } = useUser();
   const isEditMode = !!event;
 
-  const defaultValues = isEditMode ? {
-    name: event.name,
-    description: event.description,
-    date: event.date.toDate().toISOString().split('T')[0], // Format to YYYY-MM-DD
-    image: event.imageUrl,
-    catalog: event.catalogUrl || '',
-  } : {
-    name: '',
-    description: '',
-    date: '',
-    image: undefined,
-    catalog: undefined,
-  };
+  const defaultValues = isEditMode
+    ? {
+        name: event.name,
+        description: event.description,
+        date: event.date.toDate().toISOString().split("T")[0],
+        image: event.imageUrl,
+        catalog: event.catalogUrl || "",
+      }
+    : {
+        name: "",
+        description: "",
+        date: "",
+        image: undefined,
+        catalog: undefined,
+      };
 
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
     defaultValues,
     mode: "onChange",
   });
-  
-  const { formState: { isSubmitting } } = form;
+
+  const {
+    formState: { isSubmitting },
+  } = form;
 
   async function onSubmit(data: EventFormValues) {
     if (!firestore) {
-        toast({ title: "Error", description: "Firestore is not available.", variant: "destructive" });
-        return;
+      toast({
+        title: "Error",
+        description: "Firestore is not available.",
+        variant: "destructive",
+      });
+      return;
     }
     if (!user) {
-        toast({ title: "Authentication Error", description: "You must be logged in to manage an event.", variant: "destructive" });
-        router.push('/login');
-        return;
+      toast({
+        title: "Authentication Error",
+        description: "You must be logged in to manage an event.",
+        variant: "destructive",
+      });
+      router.push("/login");
+      return;
     }
 
     try {
-      // NOTE: In a real app, you'd upload files to Firebase Storage here and get the URLs.
-      // For this prototype, we'll use placeholder URLs or keep existing ones.
-      const imageUrl = typeof data.image === 'string' ? data.image : `https://picsum.photos/seed/${data.name.replace(/\s/g, '')}/600/400`;
-      const catalogUrl = typeof data.catalog === 'string' ? data.catalog : (data.catalog?.[0] ? 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf' : undefined);
+      const storage = getStorage();
+      let imageUrl = typeof data.image === "string" ? data.image : "";
+      let catalogUrl = typeof data.catalog === "string" ? data.catalog : "";
 
+      // Upload Image to Firebase Storage
+      if (data.image && typeof data.image !== "string" && data.image[0]) {
+        const imageFile = data.image[0];
+        const imageRef = ref(storage, `events/${user.uid}/${Date.now()}_${imageFile.name}`);
+        const uploadResult = await uploadBytes(imageRef, imageFile);
+        imageUrl = await getDownloadURL(uploadResult.ref);
+      }
+
+      // Upload Catalog (if any)
+      if (data.catalog && typeof data.catalog !== "string" && data.catalog[0]) {
+        const catalogFile = data.catalog[0];
+        const catalogRef = ref(storage, `catalogs/${user.uid}/${Date.now()}_${catalogFile.name}`);
+        const uploadResult = await uploadBytes(catalogRef, catalogFile);
+        catalogUrl = await getDownloadURL(uploadResult.ref);
+      }
+
+      // Prepare data for Firestore
       const eventData = {
         name: data.name,
         description: data.description,
         date: Timestamp.fromDate(new Date(data.date)),
         imageUrl,
-        catalogUrl,
+        catalogUrl: catalogUrl || undefined,
         ownerId: user.uid,
       };
-      
+
       if (isEditMode && event.id) {
         const eventRef = doc(firestore, "events", event.id);
         await updateDocumentNonBlocking(eventRef, eventData);
@@ -129,22 +183,23 @@ export function EventForm({ event }: EventFormProps) {
         router.push(`/events/${event.id}`);
       } else {
         const eventsCollection = collection(firestore, "events");
-        const newDoc = await addDocumentNonBlocking(eventsCollection, eventData);
+        await addDocumentNonBlocking(eventsCollection, eventData);
         toast({
           title: "Event Created!",
           description: "Your new Jastip event has been successfully created.",
         });
         router.push("/");
       }
-      router.refresh(); 
 
+      router.refresh();
     } catch (error: any) {
-        console.error("Error submitting event: ", error);
-        toast({
-            title: "Something went wrong",
-            description: error.message || "Could not save the event. Please try again.",
-            variant: "destructive",
-        })
+      console.error("Error submitting event: ", error);
+      toast({
+        title: "Something went wrong",
+        description:
+          error.message || "Could not save the event. Please try again.",
+        variant: "destructive",
+      });
     }
   }
 
@@ -153,10 +208,18 @@ export function EventForm({ event }: EventFormProps) {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardHeader>
-             <CardTitle className="font-headline text-2xl">{isEditMode ? "Edit Event" : "Create New Event"}</CardTitle>
-             <CardDescription>{isEditMode ? "Update the details of your event." : "Fill in the details to create a new jastip event."}</CardDescription>
+            <CardTitle className="font-headline text-2xl">
+              {isEditMode ? "Edit Event" : "Create New Event"}
+            </CardTitle>
+            <CardDescription>
+              {isEditMode
+                ? "Update the details of your event."
+                : "Fill in the details to create a new jastip event."}
+            </CardDescription>
           </CardHeader>
+
           <CardContent className="space-y-8">
+            {/* Event Name */}
             <FormField
               control={form.control}
               name="name"
@@ -164,13 +227,18 @@ export function EventForm({ event }: EventFormProps) {
                 <FormItem>
                   <FormLabel>Event Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., 'Japan Summer Festival'" {...field} />
+                    <Input
+                      placeholder="e.g., 'Japan Summer Festival'"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-             <FormField
+
+            {/* Description */}
+            <FormField
               control={form.control}
               name="description"
               render={({ field }) => (
@@ -178,18 +246,20 @@ export function EventForm({ event }: EventFormProps) {
                   <FormLabel>Event Description</FormLabel>
                   <FormControl>
                     <Textarea
-                        placeholder="Describe the event and what kind of items can be bought."
-                        className="resize-y"
-                        {...field}
-                      />
+                      placeholder="Describe the event and what kind of items can be bought."
+                      className="resize-y"
+                      {...field}
+                    />
                   </FormControl>
-                   <FormDescription>
+                  <FormDescription>
                     This will be shown to users on the event card.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            {/* Date */}
             <FormField
               control={form.control}
               name="date"
@@ -203,40 +273,79 @@ export function EventForm({ event }: EventFormProps) {
                 </FormItem>
               )}
             />
-             <FormField
+
+            {/* Image Upload */}
+            <FormField
               control={form.control}
               name="image"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Event Image</FormLabel>
                   <FormControl>
-                     <Input type="file" accept={ACCEPTED_IMAGE_TYPES.join(',')} onChange={(e) => field.onChange(e.target.files)} />
+                    <Input
+                      type="file"
+                      accept={ACCEPTED_IMAGE_TYPES.join(",")}
+                      onChange={(e) => field.onChange(e.target.files)}
+                    />
                   </FormControl>
-                  <FormDescription>Upload an image for your event (JPG, PNG, WebP). Max 5MB.</FormDescription>
-                  {isEditMode && typeof event.imageUrl === 'string' && <img src={event.imageUrl} alt="Current event" className="w-32 h-32 object-cover mt-2 rounded-md"/>}
+                  <FormDescription>
+                    Upload an image for your event (JPG, PNG, WebP). Max 5MB.
+                  </FormDescription>
+                  {isEditMode && typeof event.imageUrl === "string" && (
+                    <img
+                      src={event.imageUrl}
+                      alt="Current event"
+                      className="w-32 h-32 object-cover mt-2 rounded-md"
+                    />
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
             />
-             <FormField
+
+            {/* Catalog Upload */}
+            <FormField
               control={form.control}
               name="catalog"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Event Catalog (Optional)</FormLabel>
                   <FormControl>
-                    <Input type="file" accept={ACCEPTED_PDF_TYPES.join(',')} onChange={(e) => field.onChange(e.target.files)} />
+                    <Input
+                      type="file"
+                      accept={ACCEPTED_PDF_TYPES.join(",")}
+                      onChange={(e) => field.onChange(e.target.files)}
+                    />
                   </FormControl>
-                  <FormDescription>Upload a PDF catalog for your event. Max 5MB.</FormDescription>
-                   {isEditMode && typeof event.catalogUrl === 'string' && <a href={event.catalogUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-sm mt-2 block">View Current Catalog</a>}
+                  <FormDescription>
+                    Upload a PDF catalog for your event. Max 5MB.
+                  </FormDescription>
+                  {isEditMode && typeof event.catalogUrl === "string" && (
+                    <a
+                      href={event.catalogUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline text-sm mt-2 block"
+                    >
+                      View Current Catalog
+                    </a>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
             />
           </CardContent>
+
+          {/* Footer */}
           <CardFooter className="flex justify-between flex-row-reverse">
             <Button type="submit" disabled={isSubmitting} className="w-1/2">
-                {isSubmitting ? <Loader2 className="animate-spin" /> : (isEditMode ? "Save Changes" : "Create Event")}
+              {isSubmitting ? (
+                <Loader2 className="animate-spin" />
+              ) : isEditMode ? (
+                "Save Changes"
+              ) : (
+                "Create Event"
+              )}
             </Button>
             <Button asChild variant="outline" className="w-1/2">
               <Link href={isEditMode ? `/events/${event.id}` : "/"}>
