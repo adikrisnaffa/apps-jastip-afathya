@@ -10,6 +10,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ArrowLeft, ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import type { JastipEvent } from '@/lib/types';
 
 export default function EditEventPage() {
   const params = useParams();
@@ -23,7 +25,7 @@ export default function EditEventPage() {
     return doc(firestore, "events", eventId);
   }, [firestore, eventId]);
 
-  const { data: event, isLoading: isEventLoading } = useDoc(eventRef);
+  const { data: event, isLoading: isEventLoading } = useDoc<JastipEvent>(eventRef);
 
   const isLoading = isUserLoading || isEventLoading;
   const isOwner = user && event && event.ownerId === user.uid;
