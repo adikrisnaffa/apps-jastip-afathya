@@ -76,8 +76,14 @@ export function EventForm({ event }: EventFormProps) {
     description: event.description,
     date: event.date.toDate().toISOString().split('T')[0], // Format to YYYY-MM-DD
     image: event.imageUrl,
-    catalog: event.catalogUrl,
-  } : {};
+    catalog: event.catalogUrl || '',
+  } : {
+    name: '',
+    description: '',
+    date: '',
+    image: undefined,
+    catalog: undefined,
+  };
 
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
