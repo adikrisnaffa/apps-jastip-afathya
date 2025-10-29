@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { collection, Timestamp } from "firebase/firestore";
+import { collection, doc, Timestamp } from "firebase/firestore";
 import { useFirestore, useUser } from "@/firebase";
 
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ArrowLeft, Loader2 } from "lucide-react";
-import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { addDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import type { Order } from "@/lib/types";
 
 const orderFormSchema = z.object({
   customerName: z
@@ -60,17 +61,34 @@ const orderFormSchema = z.object({
 
 type OrderFormValues = z.infer<typeof orderFormSchema>;
 
-const defaultValues: Partial<OrderFormValues> = {
-  customerName: "",
-  quantity: 1,
-  price: 0,
+type OrderFormProps = {
+  eventId: string;
+  order?: Order;
+  defaultCustomerName?: string;
 };
 
-export function OrderForm({ eventId }: { eventId: string }) {
+export function OrderForm({ eventId, order, defaultCustomerName }: OrderFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
+  const isEditMode = !!order;
+
+  const defaultValues = isEditMode
+    ? {
+        customerName: order.customerName,
+        itemDescription: order.itemDescription,
+        quantity: order.quantity,
+        price: order.price,
+        specificRequests: order.specificRequests || "",
+      }
+    : {
+        customerName: defaultCustomerName || "",
+        itemDescription: "",
+        quantity: 1,
+        price: 0,
+        specificRequests: "",
+      };
 
   const form = useForm<OrderFormValues>({
     resolver: zodResolver(orderFormSchema),
@@ -86,26 +104,35 @@ export function OrderForm({ eventId }: { eventId: string }) {
       return;
     }
     if (!user) {
-      toast({ title: "Not logged in", description: "You must be logged in to place an order.", variant: "destructive" });
+      toast({ title: "Not logged in", description: "You must be logged in to manage an order.", variant: "destructive" });
       router.push('/login');
       return;
     }
 
     try {
-      const ordersCollection = collection(firestore, "users", user.uid, "orders");
-      const newOrder = {
-        ...data,
-        eventId: eventId,
-        userId: user.uid,
-        createdAt: Timestamp.now(),
-        status: "Placed" as const,
-      };
-      await addDocumentNonBlocking(ordersCollection, newOrder);
+      if (isEditMode && order.id) {
+        const orderRef = doc(firestore, "users", user.uid, "orders", order.id);
+        await updateDocumentNonBlocking(orderRef, data);
+        toast({
+          title: "Order Updated!",
+          description: "The order details have been successfully updated.",
+        });
+      } else {
+        const ordersCollection = collection(firestore, "users", user.uid, "orders");
+        const newOrder = {
+          ...data,
+          eventId: eventId,
+          userId: user.uid,
+          createdAt: Timestamp.now(),
+          status: "Placed" as const,
+        };
+        await addDocumentNonBlocking(ordersCollection, newOrder);
+        toast({
+          title: "Order Submitted!",
+          description: "We've received your order and will begin processing it shortly.",
+        });
+      }
 
-      toast({
-        title: "Order Submitted!",
-        description: "We've received your order and will begin processing it shortly.",
-      });
       router.push(`/events/${eventId}`);
       router.refresh();
 
@@ -124,7 +151,7 @@ export function OrderForm({ eventId }: { eventId: string }) {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardHeader>
-            <CardTitle className="font-headline">Order Details</CardTitle>
+            <CardTitle className="font-headline">{isEditMode ? "Edit Order" : "Order Details"}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-8">
             <FormField
@@ -137,6 +164,7 @@ export function OrderForm({ eventId }: { eventId: string }) {
                     <Input
                       placeholder="e.g., 'Adikrisna'"
                       {...field}
+                      disabled={isEditMode} // Don't allow changing customer name on edit
                     />
                   </FormControl>
                   <FormDescription>
@@ -217,7 +245,7 @@ export function OrderForm({ eventId }: { eventId: string }) {
           </CardContent>
           <CardFooter className="flex-row-reverse justify-between">
             <Button type="submit" disabled={isSubmitting} className="w-1/2 bg-primary hover:bg-primary/90 text-primary-foreground">
-                {isSubmitting ? <Loader2 className="animate-spin" /> : "Submit Order"}
+                {isSubmitting ? <Loader2 className="animate-spin" /> : isEditMode ? "Save Changes" : "Submit Order"}
             </Button>
             <Button asChild variant="outline" className="w-1/2">
               <Link href={`/events/${eventId}`}>

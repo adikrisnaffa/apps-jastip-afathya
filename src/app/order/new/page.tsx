@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 export default function NewOrderPage() {
   const searchParams = useSearchParams();
   const eventId = searchParams.get('eventId');
+  const customerName = searchParams.get('customerName');
   const firestore = useFirestore();
 
   const eventRef = useMemoFirebase(() => {
@@ -64,7 +65,7 @@ export default function NewOrderPage() {
           </p>
         </div>
       </div>
-      <OrderForm eventId={eventId}/>
+      <OrderForm eventId={eventId} defaultCustomerName={customerName || ''} />
     </div>
   );
 }
