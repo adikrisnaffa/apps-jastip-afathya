@@ -161,63 +161,62 @@ export default function OrderList({ eventId }: OrderListProps) {
     <Accordion type="multiple" className="w-full space-y-4">
       {customerKeys.map((customerName) => (
         <AccordionItem value={customerName} key={customerName} className="border-b-0 rounded-lg bg-card text-card-foreground shadow-md transition-all">
-            <AccordionTrigger>
-              <div className="flex items-center justify-between w-full p-4 font-semibold text-left">
-                  <div className="flex flex-1 items-center gap-4 cursor-pointer">
-                    <User className="h-5 w-5 text-primary" />
-                    <span className="text-lg font-headline">{customerName}</span>
-                    <Badge variant="secondary">{groupedOrders[customerName].length} Order(s)</Badge>
-                  </div>
-                
-                <div className="flex items-center gap-2 pl-4">
-                  <NotaDialog orders={groupedOrders[customerName]} customerName={customerName}>
-                    <Button variant="outline" size="sm" onClick={(e) => e.stopPropagation()}>
-                      <Receipt className="mr-2 h-4 w-4" />
-                      View Receipt
-                    </Button>
-                  </NotaDialog>
-                  <Button
-                    asChild
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Link
-                      href={`/order/new?eventId=${eventId}&customerName=${encodeURIComponent(customerName)}`}
-                    >
-                      <PlusCircle className="mr-2 h-4 w-4" />
-                      Add Order
-                    </Link>
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleMarkAllPaid(customerName); }} disabled={isUpdatingStatus === customerName}>
-                        <CreditCard className="mr-2 h-4 w-4" />
-                        {isUpdatingStatus === customerName ? "Paying..." : "Paid"}
-                  </Button>
-                  <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="destructive" size="sm" disabled={isDeleting === customerName} onClick={(e) => e.stopPropagation()}>
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                {isDeleting === customerName ? "..." : "Delete"}
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    This will permanently delete all {groupedOrders[customerName].length} orders for <strong>{customerName}</strong>. This action cannot be undone.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDeleteCustomerOrders(customerName)}>
-                                    Yes, delete all
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
+            <div className="flex items-center justify-between w-full p-4 font-semibold text-left">
+              <AccordionTrigger className="flex-1 p-0 hover:no-underline">
+                <div className="flex items-center gap-4 cursor-pointer">
+                  <User className="h-5 w-5 text-primary" />
+                  <span className="text-lg font-headline">{customerName}</span>
+                  <Badge variant="secondary">{groupedOrders[customerName].length} Order(s)</Badge>
                 </div>
+              </AccordionTrigger>
+              
+              <div className="flex items-center gap-2 pl-4">
+                <NotaDialog orders={groupedOrders[customerName]} customerName={customerName}>
+                  <Button variant="outline" size="sm">
+                    <Receipt className="mr-2 h-4 w-4" />
+                    View Receipt
+                  </Button>
+                </NotaDialog>
+                <Button
+                  asChild
+                  variant="ghost"
+                  size="sm"
+                >
+                  <Link
+                    href={`/order/new?eventId=${eventId}&customerName=${encodeURIComponent(customerName)}`}
+                  >
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Add Order
+                  </Link>
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleMarkAllPaid(customerName)} disabled={isUpdatingStatus === customerName}>
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      {isUpdatingStatus === customerName ? "Paying..." : "Paid"}
+                </Button>
+                <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                          <Button variant="destructive" size="sm" disabled={isDeleting === customerName}>
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              {isDeleting === customerName ? "..." : "Delete"}
+                          </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                          <AlertDialogHeader>
+                              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                  This will permanently delete all {groupedOrders[customerName].length} orders for <strong>{customerName}</strong>. This action cannot be undone.
+                              </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteCustomerOrders(customerName)}>
+                                  Yes, delete all
+                              </AlertDialogAction>
+                          </AlertDialogFooter>
+                      </AlertDialogContent>
+                  </AlertDialog>
               </div>
-            </AccordionTrigger>
+            </div>
             <AccordionContent className="pt-0 p-4">
                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 pt-4 border-t">
                     {groupedOrders[customerName].map((order) => (
