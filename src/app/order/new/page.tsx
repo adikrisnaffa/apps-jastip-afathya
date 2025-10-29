@@ -1,15 +1,43 @@
 "use client";
 
+import { useMemo } from 'react';
 import { OrderForm } from "@/components/order/OrderForm";
 import { useSearchParams } from 'next/navigation';
-import { mockEvents } from '@/lib/mock-data';
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useFirestore, useMemoFirebase } from '@/firebase/provider';
+import { doc } from 'firebase/firestore';
+import { useDoc } from '@/firebase/firestore/use-doc';
+import type { JastipEvent } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function NewOrderPage() {
   const searchParams = useSearchParams();
   const eventId = searchParams.get('eventId');
-  const event = mockEvents.find(e => e.id === eventId);
+  const firestore = useFirestore();
+
+  const eventRef = useMemoFirebase(() => {
+    if (!firestore || !eventId) return null;
+    return doc(firestore, "events", eventId);
+  }, [firestore, eventId]);
+
+  const { data: event, isLoading } = useDoc<JastipEvent>(eventRef);
+  
+  if (isLoading) {
+    return (
+        <div className="container mx-auto max-w-2xl py-12 px-4">
+            <div className="relative text-center mb-8">
+              <Skeleton className="h-10 w-3/4 mx-auto" />
+              <Skeleton className="h-4 w-1/2 mx-auto mt-2" />
+            </div>
+            <div className="space-y-8">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-10 w-full" />
+            </div>
+        </div>
+    )
+  }
 
   if (!eventId || !event) {
       return (
