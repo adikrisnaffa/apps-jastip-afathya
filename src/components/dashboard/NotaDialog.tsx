@@ -3,6 +3,7 @@
 import type { Order } from "@/lib/types";
 import {
   Dialog,
+  DialogTrigger,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -112,11 +113,13 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
              </ul>
           </div>
         </div>
-        <Separator className="print-hide" />
-        <DialogFooter className="sm:justify-between gap-2 print-hide">
-            <Button variant="outline" onClick={handlePrint}>Print</Button>
-            <Button onClick={handlePayment} className="bg-accent hover:bg-accent/90 text-accent-foreground">Pay Now</Button>
-        </DialogFooter>
+        <div className="print-hide">
+          <Separator />
+          <DialogFooter className="sm:justify-between gap-2 pt-4">
+              <Button variant="outline" onClick={handlePrint}>Print</Button>
+              <Button onClick={handlePayment} className="bg-accent hover:bg-accent/90 text-accent-foreground">Pay Now</Button>
+          </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
