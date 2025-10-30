@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -11,11 +10,12 @@ import {
   CardTitle,
   CardFooter
 } from "@/components/ui/card";
-import { Loader2, UserPlus, Mail, Key } from "lucide-react";
+import { Loader2, UserPlus, Mail, Key, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { createUserWithEmailAndPassword } from "firebase/auth";
+import Link from "next/link";
 
 export default function MasterPage() {
   const { user, isUserLoading } = useUser();
@@ -41,7 +41,7 @@ export default function MasterPage() {
     setIsSubmitting(true);
     try {
       // We are creating a new user, this doesn't sign the current admin out.
-      await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       toast({
         title: "User Created",
         description: `Successfully created account for ${email}.`,
@@ -129,7 +129,13 @@ export default function MasterPage() {
                         />
                     </div>
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="flex justify-between gap-4">
+                    <Button asChild variant="outline" className="w-full">
+                        <Link href="/">
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            Back
+                        </Link>
+                    </Button>
                     <Button type="submit" className="w-full" disabled={isSubmitting}>
                         <UserPlus className="mr-2 h-5 w-5" />
                         {isSubmitting ? "Creating User..." : "Create User"}
