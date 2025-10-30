@@ -84,31 +84,50 @@
 }
 
 @media print {
+  body {
+    background-color: white;
+  }
+  
   body * {
     visibility: hidden;
   }
+
   .printable-receipt, .printable-receipt * {
     visibility: visible;
   }
+
   .printable-receipt {
     position: absolute;
     left: 0;
     top: 0;
     width: 100%;
     height: auto;
-    border: none;
-    box-shadow: none;
-    background: white;
+    border: none !important;
+    box-shadow: none !important;
+    background: white !important;
+    color: black !important;
     margin: 0;
     padding: 1rem;
   }
 
-  .printable-receipt .max-h-\[400px\] {
-    max-height: none;
-    overflow-y: visible;
+  .print-hide {
+    display: none !important;
   }
   
-  .printable-receipt .sm\:justify-between {
-    display: none;
+  .print-expand {
+    max-height: none !important;
+    overflow-y: visible !important;
+  }
+
+  .printable-receipt table {
+    width: 100%;
+  }
+  
+  .printable-receipt .text-primary {
+    color: black !important;
+  }
+
+  .printable-receipt .print-bg-transparent {
+    background-color: transparent !important;
   }
 }

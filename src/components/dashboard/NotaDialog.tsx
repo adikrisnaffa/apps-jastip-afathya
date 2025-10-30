@@ -56,15 +56,16 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
       <DialogContent className="sm:max-w-[625px] bg-card printable-receipt">
         <DialogHeader>
           <DialogTitle className="font-headline text-2xl text-primary">Order Receipt</DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="print-hide">
             Aggregated receipt for {customerName}.
           </DialogDescription>
         </DialogHeader>
         <div className="py-4 space-y-4">
-          <div className="text-sm text-muted-foreground">
+          <div className="text-sm">
+            <p><strong>Customer:</strong> {customerName}</p>
             <p><strong>Date:</strong> {firstOrderDate ? firstOrderDate.toLocaleDateString() : 'N/A'}</p>
           </div>
-          <div className="max-h-[400px] overflow-y-auto">
+          <div className="max-h-[400px] overflow-y-auto print-expand">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -85,22 +86,26 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
                 ))}
               </TableBody>
               <TableFooter>
-                <TableRow>
-                  <TableCell colSpan={3} className="text-right font-bold text-lg">Grand Total</TableCell>
-                  <TableCell className="text-right font-bold text-lg">{formatRupiah(grandTotal)}</TableCell>
+                <TableRow className="text-lg">
+                  <TableCell colSpan={3} className="text-right font-bold">Grand Total</TableCell>
+                  <TableCell className="text-right font-bold">{formatRupiah(grandTotal)}</TableCell>
                 </TableRow>
               </TableFooter>
             </Table>
           </div>
           <div className="space-y-2">
              <p className="font-semibold">Specific Requests:</p>
-             <ul className="text-sm text-muted-foreground list-disc list-inside p-2 bg-muted rounded-md">
-                {orders.map(o => o.specificRequests && <li key={o.id}>{o.specificRequests}</li>)}
+             <ul className="text-sm text-muted-foreground list-disc list-inside p-2 bg-muted rounded-md print-bg-transparent">
+                {orders.filter(o => o.specificRequests).length > 0 ? (
+                  orders.map(o => o.specificRequests && <li key={o.id}>{o.specificRequests}</li>)
+                ) : (
+                  <li>No specific requests.</li>
+                )}
              </ul>
           </div>
         </div>
-        <Separator />
-        <DialogFooter className="sm:justify-between gap-2">
+        <Separator className="print-hide" />
+        <DialogFooter className="sm:justify-between gap-2 print-hide">
             <Button variant="outline" onClick={handlePrint}>Print</Button>
             <Button onClick={handlePayment} className="bg-accent hover:bg-accent/90 text-accent-foreground">Pay Now</Button>
         </DialogFooter>
