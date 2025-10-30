@@ -31,6 +31,7 @@ import {
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { addDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import type { Order } from "@/lib/types";
+import { logActivity } from "@/lib/activity-logger";
 
 const orderFormSchema = z.object({
   customerName: z
@@ -113,6 +114,14 @@ export function OrderForm({ eventId, order, defaultCustomerName }: OrderFormProp
       if (isEditMode && order.id) {
         const orderRef = doc(firestore, "orders", order.id);
         updateDocumentNonBlocking(orderRef, data);
+        logActivity(
+          firestore,
+          user,
+          "UPDATE",
+          "Order",
+          order.id,
+          `Updated order for "${data.customerName}": ${data.itemDescription}`
+        );
         toast({
           title: "Order Updated!",
           description: "The order details have been successfully updated.",
@@ -126,7 +135,17 @@ export function OrderForm({ eventId, order, defaultCustomerName }: OrderFormProp
           createdAt: Timestamp.now(),
           status: "Not Paid" as const,
         };
-        addDocumentNonBlocking(ordersCollection, newOrder);
+        const newDoc = await addDocumentNonBlocking(ordersCollection, newOrder);
+        if (newDoc) {
+            logActivity(
+                firestore,
+                user,
+                "CREATE",
+                "Order",
+                newDoc.id,
+                `New order for "${data.customerName}": ${data.itemDescription}`
+            );
+        }
         toast({
           title: "Order Submitted!",
           description: "We've received your order and will begin processing it shortly.",

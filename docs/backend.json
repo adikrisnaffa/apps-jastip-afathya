@@ -120,6 +120,57 @@
         }
       },
       "required": ["id", "name", "description", "date"]
+    },
+    "ActivityLog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ActivityLog",
+      "type": "object",
+      "description": "Represents a single log entry for a user action.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the log entry."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who performed the action."
+        },
+        "userEmail": {
+          "type": "string",
+          "description": "The email of the user who performed the action."
+        },
+        "action": {
+          "type": "string",
+          "description": "The type of action performed (e.g., 'CREATE', 'UPDATE', 'DELETE')."
+        },
+        "entityType": {
+          "type": "string",
+          "description": "The type of entity that was affected (e.g., 'Order', 'JastipEvent')."
+        },
+        "entityId": {
+          "type": "string",
+          "description": "The ID of the entity that was affected."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The date and time the action occurred.",
+          "format": "date-time"
+        },
+        "details": {
+          "type": "string",
+          "description": "A descriptive summary of the action."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "userEmail",
+        "action",
+        "entityType",
+        "entityId",
+        "timestamp",
+        "details"
+      ]
     }
   },
   "auth": {
@@ -174,8 +225,22 @@
             }
           ]
         }
+      },
+      {
+        "path": "/activity_logs/{logId}",
+        "definition": {
+          "entityName": "ActivityLog",
+          "schema": { "$ref": "#/backend/entities/ActivityLog" },
+          "description": "Stores a log of all user activities for auditing purposes.",
+          "params": [
+            {
+              "name": "logId",
+              "description": "The unique identifier for the log entry."
+            }
+          ]
+        }
       }
     ],
-    "reasoning": "The Firestore structure uses a simple, flat structure for key collections like 'events' and 'orders'. User profiles are kept separate in a 'users' collection. This design is straightforward and relies on Firestore queries with 'where' clauses to fetch related data (e.g., getting all orders for a specific event). Security rules will be crucial to ensure users can only access the data they are permitted to see."
+    "reasoning": "The Firestore structure uses a simple, flat structure for key collections like 'events' and 'orders'. User profiles are kept separate in a 'users' collection. This design is straightforward and relies on Firestore queries with 'where' clauses to fetch related data (e.g., getting all orders for a specific event). Security rules will be crucial to ensure users can only access the data they are permitted to see. A new 'activity_logs' collection is added to track user actions for auditing."
   }
 }

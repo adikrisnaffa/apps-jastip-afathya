@@ -29,3 +29,14 @@ export type User = {
     phone?: string;
     address?: string;
 }
+
+export type ActivityLog = {
+    id: string;
+    userId: string;
+    userEmail: string;
+    action: "CREATE" | "UPDATE" | "DELETE";
+    entityType: "Order" | "JastipEvent" | "User";
+    entityId: string;
+    timestamp: Timestamp;
+    details: string;
+}

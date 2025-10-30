@@ -23,6 +23,7 @@ import {
 import { Edit, Trash2, CreditCard } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { logActivity } from "@/lib/activity-logger";
 
 type OrderCardProps = {
   order: Order;
@@ -53,6 +54,14 @@ export default function OrderCard({ order }: OrderCardProps) {
     
     try {
         await deleteDoc(orderRef);
+        logActivity(
+          firestore,
+          user,
+          "DELETE",
+          "Order",
+          order.id,
+          `Deleted order for "${order.customerName}" - Item: ${order.itemDescription}`
+        );
         toast({ title: "Order Deleted", description: "The order has been successfully removed." });
     } catch (error: any) {
         setIsDeleting(false);
@@ -66,6 +75,14 @@ export default function OrderCard({ order }: OrderCardProps) {
     const orderRef = doc(firestore, "orders", order.id);
     try {
         await updateDoc(orderRef, { status: "Paid" });
+        logActivity(
+          firestore,
+          user,
+          "UPDATE",
+          "Order",
+          order.id,
+          `Marked order as "Paid" for "${order.customerName}" - Item: ${order.itemDescription}`
+        );
         toast({ title: "Order Updated", description: "The order has been marked as Paid." });
     } catch (error: any) {
         toast({ title: "Error Updating Status", description: error.message, variant: "destructive"});

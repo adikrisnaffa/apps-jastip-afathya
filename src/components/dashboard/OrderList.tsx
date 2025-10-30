@@ -30,6 +30,7 @@ import { Button } from '../ui/button';
 import Link from 'next/link';
 import { NotaDialog } from './NotaDialog';
 import { useToast } from '@/hooks/use-toast';
+import { logActivity } from '@/lib/activity-logger';
 
 type OrderListProps = {
   eventId: string;
@@ -76,6 +77,15 @@ export default function OrderList({ eventId }: OrderListProps) {
 
       await batch.commit();
 
+      logActivity(
+          firestore,
+          user,
+          "DELETE",
+          "Order",
+          `batch-${customerName}`,
+          `Deleted all ${ordersToDelete.length} orders for customer: ${customerName}`
+        );
+
       toast({
         title: "Orders Deleted",
         description: `All orders for ${customerName} have been removed.`,
@@ -105,6 +115,15 @@ export default function OrderList({ eventId }: OrderListProps) {
       });
 
       await batch.commit();
+
+      logActivity(
+          firestore,
+          user,
+          "UPDATE",
+          "Order",
+          `batch-${customerName}`,
+          `Marked all ${ordersToUpdate.length} orders as "Paid" for customer: ${customerName}`
+        );
 
       toast({
         title: "Orders Updated",

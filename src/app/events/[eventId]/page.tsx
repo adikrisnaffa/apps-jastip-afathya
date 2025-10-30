@@ -24,6 +24,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { logActivity } from "@/lib/activity-logger";
 
 export default function EventDetailPage() {
   const params = useParams();
@@ -45,10 +46,18 @@ export default function EventDetailPage() {
   const canManageEvent = !!user;
 
   const handleDelete = async () => {
-    if (!canManageEvent || !eventRef || !firestore) return;
+    if (!canManageEvent || !eventRef || !firestore || !event) return;
     setIsDeleting(true);
     try {
         await deleteDoc(eventRef);
+        logActivity(
+          firestore,
+          user,
+          "DELETE",
+          "JastipEvent",
+          event.id,
+          `Deleted event: ${event.name}`
+        );
         toast({
             title: "Event Deleted",
             description: "The event has been successfully removed.",

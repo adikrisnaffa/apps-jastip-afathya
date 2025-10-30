@@ -35,6 +35,7 @@ import {
   updateDocumentNonBlocking,
 } from "@/firebase/non-blocking-updates";
 import type { JastipEvent } from "@/lib/types";
+import { logActivity } from "@/lib/activity-logger";
 
 
 const eventFormSchema = z.object({
@@ -114,6 +115,14 @@ export function EventForm({ event }: EventFormProps) {
       if (isEditMode && event.id) {
         const eventRef = doc(firestore, "events", event.id);
         updateDocumentNonBlocking(eventRef, eventData);
+        logActivity(
+          firestore,
+          user,
+          "UPDATE",
+          "JastipEvent",
+          event.id,
+          `Updated event: ${data.name}`
+        );
         toast({
           title: "Event Updated!",
           description: "Your Jastip event has been successfully updated.",
@@ -121,7 +130,17 @@ export function EventForm({ event }: EventFormProps) {
         router.push(`/events/${event.id}`);
       } else {
         const eventsCollection = collection(firestore, "events");
-        addDocumentNonBlocking(eventsCollection, eventData);
+        const newDoc = await addDocumentNonBlocking(eventsCollection, eventData);
+        if (newDoc) {
+             logActivity(
+              firestore,
+              user,
+              "CREATE",
+              "JastipEvent",
+              newDoc.id,
+              `Created event: ${data.name}`
+            );
+        }
         toast({
           title: "Event Created!",
           description: "Your new Jastip event has been successfully created.",
