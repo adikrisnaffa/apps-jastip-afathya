@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { User as UserIcon, LogOut, LogIn, UserCircle2 } from "lucide-react";
+import { User as UserIcon, LogOut, LogIn, UserCircle2, Database } from "lucide-react";
 import Image from "next/image";
 import { useAuth, useUser } from "@/firebase/provider";
 import {
@@ -75,6 +75,12 @@ export default function Header() {
                     <Link href="/profile">
                         <UserCircle2 className="mr-2 h-4 w-4" />
                         <span>Profile</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/master">
+                        <Database className="mr-2 h-4 w-4" />
+                        <span>Master</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleLogout}>
