@@ -84,10 +84,6 @@
 }
 
 @media print {
-  body {
-    background-color: white;
-  }
-  
   body * {
     visibility: hidden;
   }

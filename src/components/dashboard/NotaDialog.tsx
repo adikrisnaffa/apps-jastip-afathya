@@ -8,10 +8,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ReactNode } from "react";
+import Image from "next/image";
 import {
   Table,
   TableBody,
@@ -54,17 +54,25 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
     <Dialog>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-[625px] bg-card printable-receipt">
-        <DialogHeader>
-          <DialogTitle className="font-headline text-2xl text-primary">Order Receipt</DialogTitle>
-          <DialogDescription className="print-hide">
-            Aggregated receipt for {customerName}.
-          </DialogDescription>
-        </DialogHeader>
+        <div className="print-header-section space-y-4">
+            <div className="flex justify-between items-center">
+                <Image 
+                    src="/jastip-logo.png"
+                    alt="Jastip.nya by Afathya"
+                    width={150}
+                    height={50}
+                    priority
+                />
+                <h1 className="text-2xl font-bold uppercase text-primary">Invoice</h1>
+            </div>
+            <Separator />
+            <div className="text-sm">
+                <p><strong>Customer:</strong> {customerName}</p>
+                <p><strong>Date:</strong> {firstOrderDate ? firstOrderDate.toLocaleDateString() : 'N/A'}</p>
+            </div>
+        </div>
+
         <div className="py-4 space-y-4">
-          <div className="text-sm">
-            <p><strong>Customer:</strong> {customerName}</p>
-            <p><strong>Date:</strong> {firstOrderDate ? firstOrderDate.toLocaleDateString() : 'N/A'}</p>
-          </div>
           <div className="max-h-[400px] overflow-y-auto print-expand">
             <Table>
               <TableHeader>
