@@ -83,7 +83,7 @@
   }
 }
 
-@media print {
+/* @media print {
   body * {
     visibility: hidden;
   }
@@ -126,4 +126,4 @@
   .printable-receipt .print-bg-transparent {
     background-color: transparent !important;
   }
-}
+} */

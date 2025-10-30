@@ -44,7 +44,191 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
   };
 
   const handlePrint = () => {
-    window.print();
+    const printWindow = window.open('', '_blank', 'width=900,height=1000');
+    if (!printWindow) {
+      alert('Izinkan popup untuk mencetak invoice!');
+      return;
+    }
+  
+    // Ganti dengan path logo & tanda tangan kamu
+    const logoUrl = `${window.location.origin}/jastip-logo.png`; // logo utama
+    const signatureUrl = `${window.location.origin}/signature-afathya.png`; // tanda tangan
+  
+    // Tanggal hari ini
+    const today = new Date().toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+  
+    const primaryColor = '#f97316';
+    const mutedBg = '#f9f9f9';
+  
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Invoice - ${customerName}</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body {
+            font-family: system-ui, -apple-system, sans-serif;
+            padding: 2rem;
+            background: white;
+            color: #000;
+            line-height: 1.5;
+          }
+          .container { max-width: 800px; margin: 0 auto; }
+          .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+          }
+          .header img { height: 60px; }
+          .invoice-title {
+            font-size: 2rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: ${primaryColor};
+          }
+          .info { font-size: 0.95rem; margin-bottom: 1rem; }
+          hr { border: none; border-top: 1px solid #ddd; margin: 1rem 0; }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.95rem;
+          }
+          th, td {
+            border: 1px solid #ddd;
+            padding: 0.6rem;
+            text-align: left;
+          }
+          th {
+            background-color: ${mutedBg};
+            font-weight: 600;
+            text-align: center;
+          }
+          .text-center { text-align: center; }
+          .text-right { text-align: right; }
+          .font-bold { font-weight: bold; }
+          .grand-total {
+            background-color: ${mutedBg} !important;
+            font-size: 1.1rem;
+          }
+          .grand-total .total-amount { color: ${primaryColor}; }
+  
+          .specific-requests { margin: 1.5rem 0; font-size: 0.95rem; }
+          .specific-requests ul { margin: 0.5rem 0 0 1.2rem; color: #444; }
+  
+          /* Footer: Tanggal, Tanda Tangan, Nama Brand */
+          .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: 3rem;
+            font-size: 0.9rem;
+            padding-top: 1rem;
+            border-top: 1px dashed #ccc;
+          }
+          .footer-left { text-align: left; }
+          .footer-right { text-align: right; }
+          .signature-img { 
+              height: 80px;        /* ← UBAH ANGKA INI */
+              width: auto;         /* biar proporsi tetap */
+              margin: 0.5rem 0; 
+            }
+          .brand-name {
+            font-weight: bold;
+            color: ${primaryColor};
+            font-size: 1rem;
+          }
+  
+          @media print {
+            * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            body { padding: 1.5rem; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <!-- HEADER -->
+          <div class="header">
+            <img src="${logoUrl}" alt="Jastip.nya by Afathya" />
+            <div class="invoice-title">Invoice</div>
+          </div>
+          <hr />
+          <div class="info">
+            <p><strong>Customer:</strong> ${customerName}</p>
+            <p><strong>Date:</strong> ${firstOrderDate ? firstOrderDate.toLocaleDateString('id-ID') : 'N/A'}</p>
+          </div>
+  
+          <!-- TABLE -->
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th class="text-center">Qty</th>
+                <th class="text-right">Unit Price</th>
+                <th class="text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${orders.map(order => `
+                <tr>
+                  <td>${order.itemDescription}</td>
+                  <td class="text-center">${order.quantity}</td>
+                  <td class="text-right">${formatRupiah(order.price || 0)}</td>
+                  <td class="text-right">${formatRupiah((order.price || 0) * order.quantity)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+            <tfoot>
+              <tr class="grand-total">
+                <td colspan="3" class="text-right font-bold">Grand Total</td>
+                <td class="text-right font-bold total-amount">${formatRupiah(grandTotal)}</td>
+              </tr>
+            </tfoot>
+          </table>
+  
+          <!-- SPECIFIC REQUESTS -->
+          <div class="specific-requests">
+            <p class="font-bold">Specific Requests:</p>
+            <ul>
+              ${orders.filter(o => o.specificRequests).length > 0
+                ? orders.map(o => o.specificRequests ? `<li>${o.specificRequests}</li>` : '').join('')
+                : '<li>No specific requests.</li>'
+              }
+            </ul>
+          </div>
+  
+          <!-- FOOTER: Tanggal + Tanda Tangan + Brand -->
+          <div class="footer">
+            <div class="footer-left">
+              <p><strong>Printed on:</strong> ${today}</p>
+            </div>
+            <div class="footer-right">
+              <img src="${signatureUrl}" alt="Tanda Tangan" class="signature-img" />
+              <div class="brand-name">Jastip.nya by Afathya</div>
+            </div>
+          </div>
+        </div>
+  
+        <script>
+          setTimeout(() => window.print(), 600);
+          window.onafterprint = () => window.close();
+        </script>
+      </body>
+      </html>
+    `;
+  
+    printWindow.document.write(printContent);
+    printWindow.document.close();
   };
 
   const formatRupiah = (amount: number) => {

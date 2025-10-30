@@ -21,3 +21,11 @@ export type JastipEvent = {
   description: string;
   date: Timestamp;
 };
+
+export type User = {
+    id: string;
+    name: string;
+    email: string;
+    phone?: string;
+    address?: string;
+}

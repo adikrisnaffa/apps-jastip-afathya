@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { User as UserIcon, LogOut, LogIn } from "lucide-react";
+import { User as UserIcon, LogOut, LogIn, UserCircle2 } from "lucide-react";
 import Image from "next/image";
 import { useAuth, useUser } from "@/firebase/provider";
 import {
@@ -71,6 +71,12 @@ export default function Header() {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile">
+                        <UserCircle2 className="mr-2 h-4 w-4" />
+                        <span>Profile</span>
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log out</span>
