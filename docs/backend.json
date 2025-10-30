@@ -87,6 +87,11 @@
         "address": {
           "type": "string",
           "description": "The user's address."
+        },
+        "role": {
+          "type": "string",
+          "description": "The role of the user.",
+          "enum": ["admin", "user"]
         }
       },
       "required": [

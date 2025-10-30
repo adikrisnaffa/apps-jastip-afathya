@@ -22,10 +22,13 @@ export type JastipEvent = {
   date: Timestamp;
 };
 
+export type UserRole = "admin" | "user";
+
 export type User = {
     id: string;
     name: string;
     email: string;
     phone?: string;
     address?: string;
+    role?: UserRole;
 }

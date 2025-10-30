@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useAuth, useUser } from "@/firebase";
+import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import {
   Card,
   CardContent,
@@ -15,20 +15,31 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
 import Link from "next/link";
+import type { User as UserType } from "@/lib/types";
 
 export default function MasterPage() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
+  const firestore = useFirestore();
   const { toast } = useToast();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, "users", user.uid);
+  }, [firestore, user]);
+
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserType>(userDocRef);
+  const isAdmin = userProfile?.role === 'admin';
+
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth) {
+    if (!auth || !firestore) {
         toast({ title: "Error", description: "Authentication service not available.", variant: "destructive" });
         return;
     }
@@ -40,12 +51,27 @@ export default function MasterPage() {
     
     setIsSubmitting(true);
     try {
-      // We are creating a new user, this doesn't sign the current admin out.
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      // This is a temporary auth instance to create the user without signing out the admin
+      const tempAuth = auth;
+      const userCredential = await createUserWithEmailAndPassword(tempAuth, email, password);
+      const newUser = userCredential.user;
+      
+      // Create user profile in Firestore
+      const userDocRef = doc(firestore, "users", newUser.uid);
+      const newUserProfile: Omit<UserType, "id"> = {
+          name: email.split('@')[0], // Default name from email
+          email: newUser.email!,
+          role: "user" // Assign 'user' role by default
+      }
+      await setDoc(userDocRef, newUserProfile);
+
       toast({
         title: "User Created",
-        description: `Successfully created account for ${email}.`,
+        description: `Successfully created account for ${email} with role 'user'.`,
       });
+
+      // We don't sign out the admin. The new user is created in the background.
+      
       // Reset form
       setEmail("");
       setPassword("");
@@ -62,7 +88,7 @@ export default function MasterPage() {
   };
 
 
-  if (isUserLoading) {
+  if (isUserLoading || isProfileLoading) {
     return (
       <div className="container mx-auto flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] py-12">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -71,14 +97,14 @@ export default function MasterPage() {
     );
   }
 
-  if (!user) {
+  if (!user || !isAdmin) {
     return (
       <div className="container mx-auto max-w-4xl py-12 px-4">
         <Card>
           <CardHeader>
             <CardTitle>Access Denied</CardTitle>
             <CardDescription>
-              You must be logged in to access the master management page.
+              You must be an administrator to access the master management page.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -101,7 +127,7 @@ export default function MasterPage() {
             <CardHeader>
                 <CardTitle>Create New User</CardTitle>
                 <CardDescription>
-                    Add a new user account to the system. They will be able to log in with these credentials.
+                    Add a new user account to the system. They will be assigned the 'user' role by default.
                 </CardDescription>
             </CardHeader>
             <form onSubmit={handleCreateUser}>
@@ -121,7 +147,7 @@ export default function MasterPage() {
                         <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                         <Input
                         type="password"
-                        placeholder="New Password"
+                        placeholder="New Password (min. 6 characters)"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         className="pl-10"

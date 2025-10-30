@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { useDoc } from "@/firebase/firestore/use-doc";
 import { doc, deleteDoc } from "firebase/firestore";
-import { useFirestore, useMemoFirebase, useUser } from "@/firebase/provider";
+import { useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import OrderList from "@/components/dashboard/OrderList";

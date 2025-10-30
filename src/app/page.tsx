@@ -1,10 +1,10 @@
 "use client";
 
-import { useCollection, useUser } from "@/firebase";
-import { collection, query, orderBy } from "firebase/firestore";
-import { useFirestore, useMemoFirebase } from "@/firebase/provider";
+import { useCollection, useUser, useDoc, useMemoFirebase } from "@/firebase";
+import { collection, query, orderBy, doc } from "firebase/firestore";
+import { useFirestore } from "@/firebase/provider";
 import EventCard from "@/components/events/EventCard";
-import type { JastipEvent } from "@/lib/types";
+import type { JastipEvent, User } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -14,8 +14,15 @@ export default function Home() {
   const firestore = useFirestore();
   const { user } = useUser();
 
-  // A user can create an event if they are logged in.
-  const canCreateEvents = !!user;
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, "users", user.uid);
+  }, [firestore, user]);
+
+  const { data: userProfile } = useDoc<User>(userDocRef);
+
+  const isAdmin = userProfile?.role === "admin";
+  const canCreateEvents = isAdmin;
 
   const eventsQuery = useMemoFirebase(() => {
     if (!firestore) return null;

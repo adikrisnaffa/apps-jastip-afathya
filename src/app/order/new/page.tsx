@@ -5,7 +5,7 @@ import { OrderForm } from "@/components/order/OrderForm";
 import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useFirestore, useMemoFirebase } from '@/firebase/provider';
+import { useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import type { JastipEvent } from '@/lib/types';

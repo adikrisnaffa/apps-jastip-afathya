@@ -5,7 +5,7 @@ import { OrderForm } from "@/components/order/OrderForm";
 import { useParams, useSearchParams } from 'next/navigation';
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { useFirestore, useMemoFirebase, useUser } from '@/firebase/provider';
+import { useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import type { Order } from '@/lib/types';

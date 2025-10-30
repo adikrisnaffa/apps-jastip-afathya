@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { User as UserIcon, LogOut, LogIn, UserCircle2, Database } from "lucide-react";
 import Image from "next/image";
-import { useAuth, useUser } from "@/firebase/provider";
+import { useAuth, useUser, useDoc, useMemoFirebase, useFirestore } from "@/firebase";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,11 +15,23 @@ import {
 import { Button } from "../ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Skeleton } from "../ui/skeleton";
+import type { User } from "@/lib/types";
+import { doc } from "firebase/firestore";
+
 
 export default function Header() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
+  const firestore = useFirestore();
   
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, "users", user.uid);
+  }, [firestore, user]);
+
+  const { data: userProfile } = useDoc<User>(userDocRef);
+  const isAdmin = userProfile?.role === 'admin';
+
   const handleLogout = async () => {
     if(auth) {
         await auth.signOut();
@@ -77,12 +89,14 @@ export default function Header() {
                         <span>Profile</span>
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/master">
-                        <Database className="mr-2 h-4 w-4" />
-                        <span>Master</span>
-                    </Link>
-                  </DropdownMenuItem>
+                  {isAdmin && (
+                    <DropdownMenuItem asChild>
+                        <Link href="/master">
+                            <Database className="mr-2 h-4 w-4" />
+                            <span>Master</span>
+                        </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log out</span>

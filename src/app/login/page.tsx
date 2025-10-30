@@ -8,7 +8,8 @@ import {
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
 } from "firebase/auth";
-import { useAuth, useUser } from "@/firebase/provider";
+import { doc, setDoc } from "firebase/firestore";
+import { useAuth, useUser, useFirestore } from "@/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -33,6 +34,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import type { User as UserType } from "@/lib/types";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -41,6 +43,7 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
   const auth = useAuth();
+  const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
 
@@ -57,10 +60,21 @@ export default function LoginPage() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth) return;
+    if (!auth || !firestore) return;
     setIsSubmitting(true);
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const newUser = userCredential.user;
+      
+      // Create user profile in Firestore
+      const userDocRef = doc(firestore, "users", newUser.uid);
+      const newUserProfile: Omit<UserType, "id"> = {
+          name: newUser.displayName || email.split('@')[0],
+          email: newUser.email!,
+          role: "user"
+      }
+      await setDoc(userDocRef, newUserProfile);
+
       toast({
         title: "Account Created!",
         description: "You have been successfully signed up and logged in.",
