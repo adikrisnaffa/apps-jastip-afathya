@@ -100,7 +100,7 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
                   </TableRow>
                 ))}
               </TableBody>
-              <TableFooter>
+              <TableFooter className="bg-muted print-bg-transparent">
                 <TableRow className="text-lg">
                   <TableCell colSpan={3} className="text-right font-bold">Grand Total</TableCell>
                   <TableCell className="text-right font-bold">{formatRupiah(grandTotal)}</TableCell>
