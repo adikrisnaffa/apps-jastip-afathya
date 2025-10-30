@@ -71,7 +71,6 @@ export default function LoginPage() {
       const newUserProfile: Omit<UserType, "id"> = {
           name: newUser.displayName || email.split('@')[0],
           email: newUser.email!,
-          role: "user"
       }
       await setDoc(userDocRef, newUserProfile);
 

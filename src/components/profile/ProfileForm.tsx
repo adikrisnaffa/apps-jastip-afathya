@@ -26,13 +26,6 @@ import { ArrowLeft, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { updateProfile } from "firebase/auth";
 import Link from "next/link";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 
 const profileFormSchema = z.object({
@@ -43,7 +36,6 @@ const profileFormSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email." }),
   phone: z.string().optional(),
   address: z.string().optional(),
-  role: z.enum(["admin", "user"]).optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
@@ -60,7 +52,6 @@ export function ProfileForm() {
   }, [firestore, user]);
 
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserType>(userDocRef);
-  const isAdmin = userProfile?.role === "admin";
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -69,7 +60,6 @@ export function ProfileForm() {
       name: user?.displayName || "",
       phone: "",
       address: "",
-      role: "user",
     },
     mode: "onChange",
   });
@@ -81,7 +71,6 @@ export function ProfileForm() {
             name: userProfile.name || user?.displayName || "",
             phone: userProfile.phone || "",
             address: userProfile.address || "",
-            role: userProfile.role || "user",
         });
     } else if (user) {
         form.reset({
@@ -89,7 +78,6 @@ export function ProfileForm() {
              name: user.displayName || "",
              phone: "",
              address: "",
-             role: "user",
         })
     }
   }, [userProfile, user, form]);
@@ -114,7 +102,6 @@ export function ProfileForm() {
         email: data.email,
         phone: data.phone || "",
         address: data.address || "",
-        role: data.role || "user",
       };
 
       await setDoc(userDocRef, profileData, { merge: true });
@@ -207,32 +194,6 @@ export function ProfileForm() {
             </FormItem>
           )}
         />
-         {isAdmin && (
-           <FormField
-            control={form.control}
-            name="role"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Role</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Select a role" />
-                    </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="user">User</SelectItem>
-                    </SelectContent>
-                </Select>
-                <FormDescription>
-                    Admins can create events and manage users. Users can only place orders.
-                </FormDescription>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-         )}
 
         <div className="flex justify-end items-center gap-4">
             <Button asChild variant="outline">

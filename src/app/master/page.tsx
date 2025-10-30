@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
+import { useAuth, useUser, useFirestore } from "@/firebase";
 import {
   Card,
   CardContent,
@@ -29,14 +29,6 @@ export default function MasterPage() {
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const userDocRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return doc(firestore, "users", user.uid);
-  }, [firestore, user]);
-
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserType>(userDocRef);
-  const isAdmin = userProfile?.role === 'admin';
-
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!auth || !firestore) {
@@ -61,13 +53,12 @@ export default function MasterPage() {
       const newUserProfile: Omit<UserType, "id"> = {
           name: email.split('@')[0], // Default name from email
           email: newUser.email!,
-          role: "user" // Assign 'user' role by default
       }
       await setDoc(userDocRef, newUserProfile);
 
       toast({
         title: "User Created",
-        description: `Successfully created account for ${email} with role 'user'.`,
+        description: `Successfully created account for ${email}.`,
       });
 
       // We don't sign out the admin. The new user is created in the background.
@@ -88,7 +79,7 @@ export default function MasterPage() {
   };
 
 
-  if (isUserLoading || isProfileLoading) {
+  if (isUserLoading) {
     return (
       <div className="container mx-auto flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] py-12">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -97,14 +88,14 @@ export default function MasterPage() {
     );
   }
 
-  if (!user || !isAdmin) {
+  if (!user) {
     return (
       <div className="container mx-auto max-w-4xl py-12 px-4">
         <Card>
           <CardHeader>
             <CardTitle>Access Denied</CardTitle>
             <CardDescription>
-              You must be an administrator to access the master management page.
+              You must be logged in to access the master management page.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -127,7 +118,7 @@ export default function MasterPage() {
             <CardHeader>
                 <CardTitle>Create New User</CardTitle>
                 <CardDescription>
-                    Add a new user account to the system. They will be assigned the 'user' role by default.
+                    Add a new user account to the system.
                 </CardDescription>
             </CardHeader>
             <form onSubmit={handleCreateUser}>
