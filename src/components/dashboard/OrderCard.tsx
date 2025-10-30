@@ -49,7 +49,7 @@ export default function OrderCard({ order }: OrderCardProps) {
     if (!user || !firestore) return;
 
     setIsDeleting(true);
-    const orderRef = doc(firestore, `users/${order.userId}/orders`, order.id);
+    const orderRef = doc(firestore, "orders", order.id);
     
     try {
         await deleteDoc(orderRef);
@@ -63,7 +63,7 @@ export default function OrderCard({ order }: OrderCardProps) {
   const handleMarkAsPaid = async () => {
     if (!user || !firestore) return;
     setIsUpdatingStatus(true);
-    const orderRef = doc(firestore, `users/${order.userId}/orders`, order.id);
+    const orderRef = doc(firestore, "orders", order.id);
     try {
         await updateDoc(orderRef, { status: "Paid" });
         toast({ title: "Order Updated", description: "The order has been marked as Paid." });
