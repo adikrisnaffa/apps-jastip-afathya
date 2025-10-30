@@ -12,12 +12,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ShieldAlert, History, Loader2 } from "lucide-react";
+import { ShieldAlert, History, Loader2, ArrowLeft } from "lucide-react";
 import { format } from 'date-fns';
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 
 function ActionBadge({ action }: { action: ActivityLog['action'] }) {
@@ -121,6 +123,14 @@ export default function LogsPage() {
                         </Alert>
                     )}
                 </CardContent>
+                <CardFooter>
+                    <Button asChild variant="outline">
+                        <Link href="/">
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            Back
+                        </Link>
+                    </Button>
+                </CardFooter>
             </Card>
         </div>
     );
