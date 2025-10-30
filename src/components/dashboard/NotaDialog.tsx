@@ -55,6 +55,12 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
     <Dialog>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-[625px] bg-card printable-receipt">
+        <DialogHeader className="sr-only">
+          <DialogTitle>Invoice for {customerName}</DialogTitle>
+          <DialogDescription>
+            A printable invoice containing all order items and the grand total.
+          </DialogDescription>
+        </DialogHeader>
         <div className="print-header-section space-y-4">
             <div className="flex justify-between items-center">
                 <Image 
