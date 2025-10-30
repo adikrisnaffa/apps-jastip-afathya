@@ -43,8 +43,6 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
   };
 
   const handlePrint = () => {
-    // Note: window.print() will print the entire page. 
-    // For a better experience, a dedicated printable component would be needed.
     window.print();
   };
 
@@ -55,7 +53,7 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
   return (
     <Dialog>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-[625px] bg-card">
+      <DialogContent className="sm:max-w-[625px] bg-card printable-receipt">
         <DialogHeader>
           <DialogTitle className="font-headline text-2xl text-primary">Order Receipt</DialogTitle>
           <DialogDescription>

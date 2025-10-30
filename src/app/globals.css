@@ -82,3 +82,33 @@
     @apply bg-background text-foreground;
   }
 }
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .printable-receipt, .printable-receipt * {
+    visibility: visible;
+  }
+  .printable-receipt {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: auto;
+    border: none;
+    box-shadow: none;
+    background: white;
+    margin: 0;
+    padding: 1rem;
+  }
+
+  .printable-receipt .max-h-\[400px\] {
+    max-height: none;
+    overflow-y: visible;
+  }
+  
+  .printable-receipt .sm\:justify-between {
+    display: none;
+  }
+}
