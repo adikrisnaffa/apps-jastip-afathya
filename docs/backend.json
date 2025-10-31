@@ -47,6 +47,10 @@
         "price": {
           "type": "number",
           "description": "The price per item."
+        },
+        "jastipFee": {
+            "type": "number",
+            "description": "The service fee for the personal shopper (jastip)."
         }
       },
       "required": [
@@ -58,7 +62,8 @@
         "quantity",
         "createdAt",
         "status",
-        "price"
+        "price",
+        "jastipFee"
       ]
     },
     "User": {

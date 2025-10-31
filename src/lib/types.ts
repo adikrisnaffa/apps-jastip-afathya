@@ -13,6 +13,7 @@ export type Order = {
   status: OrderStatus;
   createdAt: Timestamp;
   price: number; // price per item
+  jastipFee: number;
 };
 
 export type JastipEvent = {

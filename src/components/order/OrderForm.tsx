@@ -57,6 +57,12 @@ const orderFormSchema = z.object({
         invalid_type_error: "Price must be a number.",
     })
     .min(0, { message: "Price cannot be negative." }),
+  jastipFee: z.coerce
+    .number({
+        required_error: "Please enter a Jastip fee.",
+        invalid_type_error: "Fee must be a number.",
+    })
+    .min(0, { message: "Fee cannot be negative." }),
   specificRequests: z.string().optional(),
 });
 
@@ -81,6 +87,7 @@ export function OrderForm({ eventId, order, defaultCustomerName }: OrderFormProp
         itemDescription: order.itemDescription,
         quantity: order.quantity,
         price: order.price,
+        jastipFee: order.jastipFee || 0,
         specificRequests: order.specificRequests || "",
       }
     : {
@@ -88,6 +95,7 @@ export function OrderForm({ eventId, order, defaultCustomerName }: OrderFormProp
         itemDescription: "",
         quantity: 1,
         price: 0,
+        jastipFee: 0,
         specificRequests: "",
       };
 
@@ -213,7 +221,7 @@ export function OrderForm({ eventId, order, defaultCustomerName }: OrderFormProp
                 </FormItem>
               )}
             />
-            <div className="grid grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <FormField
                 control={form.control}
                 name="quantity"
@@ -235,6 +243,19 @@ export function OrderForm({ eventId, order, defaultCustomerName }: OrderFormProp
                     <FormLabel>Price per Item (Rp)</FormLabel>
                     <FormControl>
                       <Input type="number" placeholder="150000" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="jastipFee"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fee Jastip (Rp)</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="20000" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

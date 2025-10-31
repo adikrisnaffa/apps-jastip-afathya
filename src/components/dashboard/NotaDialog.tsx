@@ -33,7 +33,10 @@ type NotaDialogProps = {
 export function NotaDialog({ orders, customerName, children }: NotaDialogProps & { children: ReactNode }) {
   const { toast } = useToast();
   
-  const grandTotal = orders.reduce((acc, order) => acc + (order.price || 0) * order.quantity, 0);
+  const totalItemPrice = orders.reduce((acc, order) => acc + (order.price || 0) * order.quantity, 0);
+  const totalJastipFee = orders.reduce((acc, order) => acc + (order.jastipFee || 0), 0);
+  const grandTotal = totalItemPrice + totalJastipFee;
+
   const firstOrderDate = orders[0]?.createdAt?.toDate();
 
   const handlePayment = () => {
@@ -187,6 +190,12 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
                   <td class="text-right">${formatRupiah((order.price || 0) * order.quantity)}</td>
                 </tr>
               `).join('')}
+               ${totalJastipFee > 0 ? `
+                <tr>
+                  <td colspan="3" class="text-right">Total Jastip Fee</td>
+                  <td class="text-right">${formatRupiah(totalJastipFee)}</td>
+                </tr>
+              ` : ''}
             </tbody>
             <tfoot>
               <tr class="grand-total">
@@ -283,6 +292,12 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
                     <TableCell className="text-right">{formatRupiah((order.price || 0) * order.quantity)}</TableCell>
                   </TableRow>
                 ))}
+                {totalJastipFee > 0 && (
+                  <TableRow>
+                      <TableCell colSpan={3} className="text-right">Total Jastip Fee</TableCell>
+                      <TableCell className="text-right">{formatRupiah(totalJastipFee)}</TableCell>
+                  </TableRow>
+                )}
               </TableBody>
               <TableFooter className="bg-muted print-bg-transparent">
                 <TableRow className="text-lg">
