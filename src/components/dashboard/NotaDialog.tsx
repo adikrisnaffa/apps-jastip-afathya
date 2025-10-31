@@ -34,7 +34,7 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
   const { toast } = useToast();
   
   const totalItemPrice = orders.reduce((acc, order) => acc + (order.price || 0) * order.quantity, 0);
-  const totalJastipFee = orders.reduce((acc, order) => acc + (order.jastipFee || 0), 0);
+  const totalJastipFee = orders.reduce((acc, order) => acc + (order.jastipFee || 0) * order.quantity, 0);
   const grandTotal = totalItemPrice + totalJastipFee;
 
   const firstOrderDate = orders[0]?.createdAt?.toDate();
