@@ -91,7 +91,7 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
             align-items: center;
             margin-bottom: 1rem;
           }
-          .header img { height: 60px; }
+          .header img { height: 80px; }
           .invoice-title {
             font-size: 2rem;
             font-weight: bold;
