@@ -15,7 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { UploadCloud, File, AlertTriangle, Loader2 } from "lucide-react";
 import { useFirestore, useUser } from "@/firebase";
-import { writeBatch, collection, Timestamp } from "firebase/firestore";
+import { writeBatch, collection, doc, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { logActivity } from "@/lib/activity-logger";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
@@ -40,11 +40,15 @@ type ParsedOrder = {
     itemDescription: string;
     quantity: number;
     price: number;
+    originalPrice?: number;
     jastipFee: number;
     specificRequests?: string;
 }
 
 const REQUIRED_COLUMNS = ["Customer Name", "Item Description", "Quantity", "Price (per item)", "Jastip Fee (per item)"];
+// Original Price is optional
+const OPTIONAL_COLUMNS = ["Original Price (per item)", "Specific Requests"];
+
 
 export function ImportDialog({ eventId, children, onImporting }: ImportDialogProps) {
   const [file, setFile] = useState<File | null>(null);
@@ -109,6 +113,7 @@ export function ImportDialog({ eventId, children, onImporting }: ImportDialogPro
             itemDescription: String(row["Item Description"] || ""),
             quantity: Number(row["Quantity"] || 1),
             price: Number(row["Price (per item)"] || 0),
+            originalPrice: Number(row["Original Price (per item)"] || 0),
             jastipFee: Number(row["Jastip Fee (per item)"] || 0),
             specificRequests: String(row["Specific Requests"] || ""),
         })).filter(order => order.customerName && order.itemDescription); // Basic validation
@@ -142,7 +147,7 @@ export function ImportDialog({ eventId, children, onImporting }: ImportDialogPro
             const newOrderRef = doc(ordersCollection); // Create a new doc with a generated ID
             const newOrder = {
                 ...orderData,
-                id: newOrderRef.id, // We need to add it here, but Firestore ignores it on create
+                id: newOrderRef.id,
                 eventId: eventId,
                 userId: user.uid,
                 createdAt: Timestamp.now(),

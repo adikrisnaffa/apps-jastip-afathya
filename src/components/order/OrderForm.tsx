@@ -57,6 +57,12 @@ const orderFormSchema = z.object({
         invalid_type_error: "Price must be a number.",
     })
     .min(0, { message: "Price cannot be negative." }),
+  originalPrice: z.coerce
+    .number({
+        invalid_type_error: "Original price must be a number.",
+    })
+    .min(0, { message: "Original price cannot be negative." })
+    .optional(),
   jastipFee: z.coerce
     .number({
         required_error: "Please enter a Jastip fee.",
@@ -87,6 +93,7 @@ export function OrderForm({ eventId, order, defaultCustomerName }: OrderFormProp
         itemDescription: order.itemDescription,
         quantity: order.quantity,
         price: order.price,
+        originalPrice: order.originalPrice || 0,
         jastipFee: order.jastipFee || 0,
         specificRequests: order.specificRequests || "",
       }
@@ -95,6 +102,7 @@ export function OrderForm({ eventId, order, defaultCustomerName }: OrderFormProp
         itemDescription: "",
         quantity: 1,
         price: 0,
+        originalPrice: 0,
         jastipFee: 0,
         specificRequests: "",
       };
@@ -221,7 +229,7 @@ export function OrderForm({ eventId, order, defaultCustomerName }: OrderFormProp
                 </FormItem>
               )}
             />
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <FormField
                 control={form.control}
                 name="quantity"
@@ -235,6 +243,24 @@ export function OrderForm({ eventId, order, defaultCustomerName }: OrderFormProp
                   </FormItem>
                 )}
               />
+               <FormField
+                control={form.control}
+                name="originalPrice"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Harga Asli (Rp)</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="120000" {...field} />
+                    </FormControl>
+                     <FormDescription>
+                      For internal tracking. Not shown on invoice.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                <FormField
                 control={form.control}
                 name="price"

@@ -48,6 +48,10 @@
           "type": "number",
           "description": "The price per item."
         },
+        "originalPrice": {
+          "type": "number",
+          "description": "The original purchase price of the item, for internal profit tracking."
+        },
         "jastipFee": {
             "type": "number",
             "description": "The service fee for the personal shopper (jastip)."

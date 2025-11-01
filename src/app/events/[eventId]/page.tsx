@@ -71,6 +71,7 @@ export default function EventDetailPage() {
         "Customer Name": order.customerName,
         "Item Description": order.itemDescription,
         "Quantity": order.quantity,
+        "Original Price (per item)": order.originalPrice || 0,
         "Price (per item)": order.price,
         "Jastip Fee (per item)": order.jastipFee,
         "Total": (order.price + order.jastipFee) * order.quantity,

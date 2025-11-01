@@ -13,6 +13,7 @@ export type Order = {
   status: OrderStatus;
   createdAt: Timestamp;
   price: number; // price per item
+  originalPrice?: number; // original purchase price, for internal tracking
   jastipFee: number;
 };
 
