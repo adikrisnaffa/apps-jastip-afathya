@@ -3,15 +3,16 @@
 
 import { useState } from "react";
 import { useDoc } from "@/firebase/firestore/use-doc";
-import { doc, deleteDoc } from "firebase/firestore";
-import { useFirestore, useMemoFirebase, useUser } from "@/firebase";
+import { doc, deleteDoc, collection, query, where } from "firebase/firestore";
+import { useFirestore, useMemoFirebase, useUser, useCollection } from "@/firebase";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import OrderList from "@/components/dashboard/OrderList";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, ArrowLeft, Edit, Trash2 } from "lucide-react";
+import { PlusCircle, ArrowLeft, Edit, Trash2, Download, Upload } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { JastipEvent } from "@/lib/types";
+import type { JastipEvent, Order } from "@/lib/types";
+import * as XLSX from "xlsx";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,6 +26,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { logActivity } from "@/lib/activity-logger";
+import { ImportDialog } from "@/components/dashboard/ImportDialog";
 
 export default function EventDetailPage() {
   const params = useParams();
@@ -34,16 +36,61 @@ export default function EventDetailPage() {
   const { user } = useUser();
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
 
   const eventRef = useMemoFirebase(() => {
     if (!firestore || !eventId) return null;
     return doc(firestore, "events", eventId);
   }, [firestore, eventId]);
 
-  const { data: event, isLoading } = useDoc<JastipEvent>(eventRef);
+  const ordersQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, "orders"), where("eventId", "==", eventId));
+  }, [firestore, eventId]);
+
+  const { data: orders, isLoading: areOrdersLoading } = useCollection<Order>(ordersQuery);
+
+  const { data: event, isLoading: isEventLoading } = useDoc<JastipEvent>(eventRef);
+  const isLoading = isEventLoading || areOrdersLoading;
+  
   const eventDate = event?.date?.toDate();
 
   const canManageEvent = !!user;
+
+  const handleExport = () => {
+    if (!orders || orders.length === 0) {
+        toast({
+            title: "No Orders to Export",
+            description: "There are no orders in this event to export.",
+            variant: "destructive"
+        });
+        return;
+    }
+
+    const dataToExport = orders.map(order => ({
+        "Customer Name": order.customerName,
+        "Item Description": order.itemDescription,
+        "Quantity": order.quantity,
+        "Price (per item)": order.price,
+        "Jastip Fee (per item)": order.jastipFee,
+        "Total": (order.price + order.jastipFee) * order.quantity,
+        "Status": order.status,
+        "Specific Requests": order.specificRequests || "",
+        "Created At": order.createdAt.toDate().toLocaleString(),
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Orders");
+    
+    // Auto-size columns
+    const cols = Object.keys(dataToExport[0]).map(key => ({
+        wch: Math.max(20, key.length, ...dataToExport.map(row => String(row[key as keyof typeof row]).length))
+    }));
+    worksheet["!cols"] = cols;
+
+    XLSX.writeFile(workbook, `Jastip-${event?.name?.replace(/\s/g, '_') || 'Event'}-Orders.xlsx`);
+  };
 
   const handleDelete = async () => {
     if (!canManageEvent || !eventRef || !firestore || !event) return;
@@ -152,15 +199,27 @@ export default function EventDetailPage() {
           Event Orders
         </h2>
         {user && (
-          <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground">
-            <Link href={`/order/new?eventId=${event.id}`}>
-              <PlusCircle className="mr-2 h-5 w-5" />
-              New Order
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <ImportDialog eventId={eventId} onImporting={setIsImporting}>
+                <Button variant="outline" disabled={isImporting}>
+                    <Upload className="mr-2 h-4 w-4" />
+                    {isImporting ? 'Importing...' : 'Import Orders'}
+                </Button>
+            </ImportDialog>
+             <Button variant="outline" onClick={handleExport}>
+                <Download className="mr-2 h-4 w-4" />
+                Export Orders
+            </Button>
+            <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground">
+              <Link href={`/order/new?eventId=${event.id}`}>
+                <PlusCircle className="mr-2 h-5 w-5" />
+                New Order
+              </Link>
+            </Button>
+          </div>
         )}
       </div>
-      <OrderList eventId={event.id} />
+      <OrderList eventId={event.id} orders={orders || []} isLoading={areOrdersLoading}/>
     </div>
   );
 }

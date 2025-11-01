@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from 'react';
-import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
-import { collection, query, where, writeBatch, doc } from "firebase/firestore";
+import { useFirestore, useMemoFirebase, useUser } from "@/firebase";
+import { writeBatch, doc } from "firebase/firestore";
 import OrderCard from "./OrderCard";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Truck, User, PlusCircle, Receipt, Trash2, CreditCard } from "lucide-react";
@@ -34,21 +34,16 @@ import { logActivity } from '@/lib/activity-logger';
 
 type OrderListProps = {
   eventId: string;
+  orders: Order[];
+  isLoading: boolean;
 };
 
-export default function OrderList({ eventId }: OrderListProps) {
+export default function OrderList({ eventId, orders, isLoading }: OrderListProps) {
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState<string | null>(null);
-
-  const ordersQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(collection(firestore, "orders"), where("eventId", "==", eventId));
-  }, [firestore, eventId]);
-
-  const { data: orders, isLoading } = useCollection<Order>(ordersQuery);
 
   const groupedOrders = useMemo(() => {
     if (!orders) return {};
@@ -140,7 +135,7 @@ export default function OrderList({ eventId }: OrderListProps) {
     }
   }
 
-  if (isUserLoading || (isLoading && !orders)) {
+  if (isUserLoading || isLoading) {
      return (
        <div className="space-y-4">
          <Skeleton className="h-14 w-full" />
@@ -168,7 +163,7 @@ export default function OrderList({ eventId }: OrderListProps) {
         <Truck className="h-4 w-4" />
         <AlertTitle>No Orders Yet!</AlertTitle>
         <AlertDescription>
-          No orders have been placed for this event yet.
+          No orders have been placed for this event yet. Be the first to add one, or import from an Excel file!
         </AlertDescription>
       </Alert>
     );
