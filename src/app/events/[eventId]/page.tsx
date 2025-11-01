@@ -74,9 +74,6 @@ export default function EventDetailPage() {
         "Price (per item)": order.price,
         "Jastip Fee (per item)": order.jastipFee,
         "Total": (order.price + order.jastipFee) * order.quantity,
-        "Status": order.status,
-        "Specific Requests": order.specificRequests || "",
-        "Created At": order.createdAt.toDate().toLocaleString(),
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
@@ -84,10 +81,15 @@ export default function EventDetailPage() {
     XLSX.utils.book_append_sheet(workbook, worksheet, "Orders");
     
     // Auto-size columns
-    const cols = Object.keys(dataToExport[0]).map(key => ({
-        wch: Math.max(20, key.length, ...dataToExport.map(row => String(row[key as keyof typeof row]).length))
-    }));
-    worksheet["!cols"] = cols;
+    if (dataToExport.length > 0) {
+        const cols = Object.keys(dataToExport[0]).map(key => ({
+            wch: Math.max(20, key.length, ...dataToExport.map(row => {
+                const value = row[key as keyof typeof row];
+                return value ? String(value).length : 0;
+            }))
+        }));
+        worksheet["!cols"] = cols;
+    }
 
     XLSX.writeFile(workbook, `Jastip-${event?.name?.replace(/\s/g, '_') || 'Event'}-Orders.xlsx`);
   };
