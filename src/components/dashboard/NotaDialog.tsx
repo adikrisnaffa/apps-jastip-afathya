@@ -33,9 +33,11 @@ type NotaDialogProps = {
 export function NotaDialog({ orders, customerName, children }: NotaDialogProps & { children: ReactNode }) {
   const { toast } = useToast();
   
-  const totalItemPrice = orders.reduce((acc, order) => acc + (order.price || 0) * order.quantity, 0);
-  const totalJastipFee = orders.reduce((acc, order) => acc + (order.jastipFee || 0) * order.quantity, 0);
-  const grandTotal = totalItemPrice + totalJastipFee;
+  const grandTotal = orders.reduce((acc, order) => {
+    const itemTotal = (order.price || 0) * order.quantity;
+    const feeTotal = (order.jastipFee || 0) * order.quantity;
+    return acc + itemTotal + feeTotal;
+  }, 0);
 
   const firstOrderDate = orders[0]?.createdAt?.toDate();
 
@@ -178,6 +180,7 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
                 <th>Item</th>
                 <th class="text-center">Qty</th>
                 <th class="text-right">Unit Price</th>
+                <th class="text-right">Jastip Fee</th>
                 <th class="text-right">Total</th>
               </tr>
             </thead>
@@ -187,19 +190,14 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
                   <td>${order.itemDescription}</td>
                   <td class="text-center">${order.quantity}</td>
                   <td class="text-right">${formatRupiah(order.price || 0)}</td>
-                  <td class="text-right">${formatRupiah((order.price || 0) * order.quantity)}</td>
+                  <td class="text-right">${formatRupiah(order.jastipFee || 0)}</td>
+                  <td class="text-right">${formatRupiah(((order.price || 0) + (order.jastipFee || 0)) * order.quantity)}</td>
                 </tr>
               `).join('')}
-               ${totalJastipFee > 0 ? `
-                <tr>
-                  <td colspan="3" class="text-right">Total Jastip Fee</td>
-                  <td class="text-right">${formatRupiah(totalJastipFee)}</td>
-                </tr>
-              ` : ''}
             </tbody>
             <tfoot>
               <tr class="grand-total">
-                <td colspan="3" class="text-right font-bold">Grand Total</td>
+                <td colspan="4" class="text-right font-bold">Grand Total</td>
                 <td class="text-right font-bold total-amount">${formatRupiah(grandTotal)}</td>
               </tr>
             </tfoot>
@@ -247,7 +245,7 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
   return (
     <Dialog>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-[625px] bg-card printable-receipt">
+      <DialogContent className="sm:max-w-[725px] bg-card printable-receipt">
         <DialogHeader className="sr-only">
           <DialogTitle>Invoice for {customerName}</DialogTitle>
           <DialogDescription>
@@ -280,6 +278,7 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
                   <TableHead>Item</TableHead>
                   <TableHead className="text-center">Qty</TableHead>
                   <TableHead className="text-right">Unit Price</TableHead>
+                  <TableHead className="text-right">Jastip Fee</TableHead>
                   <TableHead className="text-right">Total</TableHead>
                 </TableRow>
               </TableHeader>
@@ -289,19 +288,14 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
                     <TableCell className="font-medium">{order.itemDescription}</TableCell>
                     <TableCell className="text-center">{order.quantity}</TableCell>
                     <TableCell className="text-right">{formatRupiah(order.price || 0)}</TableCell>
-                    <TableCell className="text-right">{formatRupiah((order.price || 0) * order.quantity)}</TableCell>
+                    <TableCell className="text-right">{formatRupiah(order.jastipFee || 0)}</TableCell>
+                    <TableCell className="text-right">{formatRupiah(((order.price || 0) + (order.jastipFee || 0)) * order.quantity)}</TableCell>
                   </TableRow>
                 ))}
-                {totalJastipFee > 0 && (
-                  <TableRow>
-                      <TableCell colSpan={3} className="text-right">Total Jastip Fee</TableCell>
-                      <TableCell className="text-right">{formatRupiah(totalJastipFee)}</TableCell>
-                  </TableRow>
-                )}
               </TableBody>
               <TableFooter className="bg-muted print-bg-transparent">
                 <TableRow className="text-lg">
-                  <TableCell colSpan={3} className="text-right font-bold">Grand Total</TableCell>
+                  <TableCell colSpan={4} className="text-right font-bold">Grand Total</TableCell>
                   <TableCell className="text-right font-bold">{formatRupiah(grandTotal)}</TableCell>
                 </TableRow>
               </TableFooter>
