@@ -179,7 +179,7 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
               <tr>
                 <th>Item</th>
                 <th class="text-center">Qty</th>
-                <th class="text-right">Unit Price</th>
+                <th class="text-right">Item Price</th>
                 <th class="text-right">Jastip Fee</th>
                 <th class="text-right">Total</th>
               </tr>
@@ -277,7 +277,7 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
                 <TableRow>
                   <TableHead>Item</TableHead>
                   <TableHead className="text-center">Qty</TableHead>
-                  <TableHead className="text-right">Unit Price</TableHead>
+                  <TableHead className="text-right">Item Price</TableHead>
                   <TableHead className="text-right">Jastip Fee</TableHead>
                   <TableHead className="text-right">Total</TableHead>
                 </TableRow>
