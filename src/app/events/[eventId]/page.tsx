@@ -75,6 +75,7 @@ export default function EventDetailPage() {
         "Price (per item)": order.price,
         "Jastip Fee (per item)": order.jastipFee,
         "Total": (order.price + order.jastipFee) * order.quantity,
+        "Total Original Price": (order.originalPrice || 0) * order.quantity,
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
