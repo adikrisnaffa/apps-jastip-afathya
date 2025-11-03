@@ -12,7 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import {
   Table,
@@ -25,7 +25,8 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "../ui/separator";
-import { Copy, Link as LinkIcon, Share2 } from "lucide-react";
+import { Copy, Link as LinkIcon, Share2, Info } from "lucide-react";
+import { Alert, AlertTitle, AlertDescription } from "../ui/alert";
 
 type NotaDialogProps = {
   orders: Order[];
@@ -48,15 +49,17 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
       setIsShareSupported(true);
     }
   }, []);
+
+  const unpaidOrders = useMemo(() => orders.filter(order => order.status === 'Not Paid'), [orders]);
   
-  const grandTotal = orders.reduce((acc, order) => {
+  const grandTotal = unpaidOrders.reduce((acc, order) => {
     const itemTotal = (order.price || 0) * order.quantity;
     const feeTotal = (order.jastipFee || 0) * order.quantity;
     return acc + itemTotal + feeTotal;
   }, 0);
 
-  const firstOrderDate = orders[0]?.createdAt?.toDate();
-  const eventId = orders[0]?.eventId;
+  const firstOrderDate = unpaidOrders[0]?.createdAt?.toDate();
+  const eventId = unpaidOrders[0]?.eventId;
 
   const getInvoiceLink = () => {
     if (!eventId) {
@@ -266,6 +269,7 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
           </div>
   
           <!-- TABLE -->
+          ${unpaidOrders.length > 0 ? `
           <table>
             <thead>
               <tr>
@@ -277,7 +281,7 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
               </tr>
             </thead>
             <tbody>
-              ${orders.map(order => `
+              ${unpaidOrders.map(order => `
                 <tr>
                   <td>${order.itemDescription}</td>
                   <td class="text-center">${order.quantity}</td>
@@ -294,13 +298,17 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
               </tr>
             </tfoot>
           </table>
-  
+          ` : `
+          <div class="details-section">
+            <p>All orders have been paid. Thank you!</p>
+          </div>
+          `}
           <!-- DETAILS SECTION -->
           <div class="details-section">
             <h3>Specific Requests:</h3>
             <ul>
-              ${orders.filter(o => o.specificRequests).length > 0
-                ? orders.map(o => o.specificRequests ? `<li>- ${o.specificRequests}</li>` : '').join('')
+              ${unpaidOrders.filter(o => o.specificRequests).length > 0
+                ? unpaidOrders.map(o => o.specificRequests ? `<li>- ${o.specificRequests}</li>` : '').join('')
                 : '<li>- No specific requests.</li>'
               }
             </ul>
@@ -382,78 +390,90 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
         </div>
 
         <div className="py-4 space-y-4">
-          <div className="max-h-[300px] overflow-y-auto print-expand">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Item</TableHead>
-                  <TableHead className="text-center">Qty</TableHead>
-                  <TableHead className="text-right">Item Price</TableHead>
-                  <TableHead className="text-right">Jastip Fee</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {orders.map((order) => (
-                  <TableRow key={order.id}>
-                    <TableCell className="font-medium">{order.itemDescription}</TableCell>
-                    <TableCell className="text-center">{order.quantity}</TableCell>
-                    <TableCell className="text-right">{formatRupiah(order.price || 0)}</TableCell>
-                    <TableCell className="text-right">{formatRupiah(order.jastipFee || 0)}</TableCell>
-                    <TableCell className="text-right">{formatRupiah(((order.price || 0) + (order.jastipFee || 0)) * order.quantity)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-              <TableFooter className="bg-muted print-bg-transparent">
-                <TableRow className="text-lg">
-                  <TableCell colSpan={4} className="text-right font-bold">Grand Total</TableCell>
-                  <TableCell className="text-right font-bold">{formatRupiah(grandTotal)}</TableCell>
-                </TableRow>
-              </TableFooter>
-            </Table>
-          </div>
-          <div className="space-y-4 text-sm">
-             <div>
-                <p className="font-semibold">Specific Requests:</p>
-                <ul className="text-muted-foreground list-disc list-inside p-2 bg-muted rounded-md print-bg-transparent">
-                    {orders.filter(o => o.specificRequests).length > 0 ? (
-                    orders.map(o => o.specificRequests && <li key={o.id}>{o.specificRequests}</li>)
-                    ) : (
-                    <li>No specific requests.</li>
-                    )}
-                </ul>
-             </div>
-             <div>
-                <p className="font-semibold">Payment Details:</p>
-                <div className="p-2 bg-muted rounded-md print-bg-transparent">
-                    <p className="text-muted-foreground">TF hanya atas nama <strong>Fathya Athifah</strong></p>
-                     <ul className="text-muted-foreground list-none space-y-2 mt-2">
-                        {paymentDetails.map(detail => (
-                             <li key={detail.name} className="flex justify-between items-center">
-                                <span><strong>{detail.name}:</strong> {detail.number}</span>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleCopyToClipboard(detail.number, detail.name)}
-                                    className="h-7 px-2"
-                                >
-                                    <Copy className="h-3 w-3 mr-1" />
-                                    Copy
-                                </Button>
-                            </li>
+            {unpaidOrders.length > 0 ? (
+                <>
+                <div className="max-h-[300px] overflow-y-auto print-expand">
+                    <Table>
+                    <TableHeader>
+                        <TableRow>
+                        <TableHead>Item</TableHead>
+                        <TableHead className="text-center">Qty</TableHead>
+                        <TableHead className="text-right">Item Price</TableHead>
+                        <TableHead className="text-right">Jastip Fee</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {unpaidOrders.map((order) => (
+                        <TableRow key={order.id}>
+                            <TableCell className="font-medium">{order.itemDescription}</TableCell>
+                            <TableCell className="text-center">{order.quantity}</TableCell>
+                            <TableCell className="text-right">{formatRupiah(order.price || 0)}</TableCell>
+                            <TableCell className="text-right">{formatRupiah(order.jastipFee || 0)}</TableCell>
+                            <TableCell className="text-right">{formatRupiah(((order.price || 0) + (order.jastipFee || 0)) * order.quantity)}</TableCell>
+                        </TableRow>
                         ))}
-                    </ul>
+                    </TableBody>
+                    <TableFooter className="bg-muted print-bg-transparent">
+                        <TableRow className="text-lg">
+                        <TableCell colSpan={4} className="text-right font-bold">Grand Total</TableCell>
+                        <TableCell className="text-right font-bold">{formatRupiah(grandTotal)}</TableCell>
+                        </TableRow>
+                    </TableFooter>
+                    </Table>
                 </div>
-             </div>
-              <div>
-                <p className="font-semibold">Notes:</p>
-                <ul className="text-muted-foreground list-disc list-inside p-2 bg-muted rounded-md print-bg-transparent">
-                    <li>TF maksimal 1x24jam</li>
-                    <li>mohon kirimkan bukti transfernya yaa kak</li>
-                    <li>masih boleh nambah order kok ;)</li>
-                </ul>
-              </div>
-          </div>
+                <div className="space-y-4 text-sm">
+                    <div>
+                        <p className="font-semibold">Specific Requests:</p>
+                        <ul className="text-muted-foreground list-disc list-inside p-2 bg-muted rounded-md print-bg-transparent">
+                            {unpaidOrders.filter(o => o.specificRequests).length > 0 ? (
+                            unpaidOrders.map(o => o.specificRequests && <li key={o.id}>{o.specificRequests}</li>)
+                            ) : (
+                            <li>No specific requests.</li>
+                            )}
+                        </ul>
+                    </div>
+                    <div>
+                        <p className="font-semibold">Payment Details:</p>
+                        <div className="p-2 bg-muted rounded-md print-bg-transparent">
+                            <p className="text-muted-foreground">TF hanya atas nama <strong>Fathya Athifah</strong></p>
+                            <ul className="text-muted-foreground list-none space-y-2 mt-2">
+                                {paymentDetails.map(detail => (
+                                    <li key={detail.name} className="flex justify-between items-center">
+                                        <span><strong>{detail.name}:</strong> {detail.number}</span>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleCopyToClipboard(detail.number, detail.name)}
+                                            className="h-7 px-2"
+                                        >
+                                            <Copy className="h-3 w-3 mr-1" />
+                                            Copy
+                                        </Button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    </div>
+                    <div>
+                        <p className="font-semibold">Notes:</p>
+                        <ul className="text-muted-foreground list-disc list-inside p-2 bg-muted rounded-md print-bg-transparent">
+                            <li>TF maksimal 1x24jam</li>
+                            <li>mohon kirimkan bukti transfernya yaa kak</li>
+                            <li>masih boleh nambah order kok ;)</li>
+                        </ul>
+                    </div>
+                </div>
+                </>
+            ) : (
+                <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertTitle>All Orders Paid</AlertTitle>
+                    <AlertDescription>
+                        There are no outstanding payments for this customer. Thank you!
+                    </AlertDescription>
+                </Alert>
+            )}
         </div>
         <div className="print-hide">
           <Separator />
@@ -477,5 +497,3 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
     </Dialog>
   );
 }
-
-    

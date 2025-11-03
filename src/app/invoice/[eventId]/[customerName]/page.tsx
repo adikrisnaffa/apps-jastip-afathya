@@ -8,7 +8,7 @@ import { collection, doc, query, where } from 'firebase/firestore';
 import type { JastipEvent, Order } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Frown, Copy } from 'lucide-react';
+import { Frown, Copy, Info } from 'lucide-react';
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -30,14 +30,16 @@ const formatRupiah = (amount: number) => {
 
 function InvoiceView({ event, orders, customerName }: { event: JastipEvent, orders: Order[], customerName: string }) {
     const { toast } = useToast();
+
+    const unpaidOrders = useMemo(() => orders.filter(order => order.status === 'Not Paid'), [orders]);
     
-    const grandTotal = orders.reduce((acc, order) => {
+    const grandTotal = unpaidOrders.reduce((acc, order) => {
         const itemTotal = (order.price || 0) * order.quantity;
         const feeTotal = (order.jastipFee || 0) * order.quantity;
         return acc + itemTotal + feeTotal;
     }, 0);
 
-    const firstOrderDate = orders[0]?.createdAt?.toDate();
+    const firstOrderDate = unpaidOrders[0]?.createdAt?.toDate();
 
     const handleCopyToClipboard = (text: string, label: string) => {
         navigator.clipboard.writeText(text).then(() => {
@@ -85,78 +87,90 @@ function InvoiceView({ event, orders, customerName }: { event: JastipEvent, orde
                 </div>
 
                 <div className="py-6 space-y-6">
-                    <div className="overflow-x-auto">
-                        <Table>
-                        <TableHeader>
-                            <TableRow>
-                            <TableHead>Item</TableHead>
-                            <TableHead className="text-center">Qty</TableHead>
-                            <TableHead className="text-right">Item Price</TableHead>
-                            <TableHead className="text-right">Jastip Fee</TableHead>
-                            <TableHead className="text-right">Total</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {orders.map((order) => (
-                            <TableRow key={order.id}>
-                                <TableCell className="font-medium">{order.itemDescription}</TableCell>
-                                <TableCell className="text-center">{order.quantity}</TableCell>
-                                <TableCell className="text-right">{formatRupiah(order.price || 0)}</TableCell>
-                                <TableCell className="text-right">{formatRupiah(order.jastipFee || 0)}</TableCell>
-                                <TableCell className="text-right">{formatRupiah(((order.price || 0) + (order.jastipFee || 0)) * order.quantity)}</TableCell>
-                            </TableRow>
-                            ))}
-                        </TableBody>
-                        <TableFooter className="bg-muted">
-                            <TableRow className="text-lg">
-                            <TableCell colSpan={4} className="text-right font-bold">Grand Total</TableCell>
-                            <TableCell className="text-right font-bold text-primary">{formatRupiah(grandTotal)}</TableCell>
-                            </TableRow>
-                        </TableFooter>
-                        </Table>
-                    </div>
-                    <div className="space-y-4 text-sm">
-                        <div>
-                            <p className="font-semibold">Specific Requests:</p>
-                            <ul className="text-muted-foreground list-disc list-inside p-2 bg-muted rounded-md">
-                                {orders.filter(o => o.specificRequests).length > 0 ? (
-                                orders.map(o => o.specificRequests && <li key={o.id}>{o.specificRequests}</li>)
-                                ) : (
-                                <li>No specific requests.</li>
-                                )}
-                            </ul>
+                    {unpaidOrders.length > 0 ? (
+                        <>
+                        <div className="overflow-x-auto">
+                            <Table>
+                            <TableHeader>
+                                <TableRow>
+                                <TableHead>Item</TableHead>
+                                <TableHead className="text-center">Qty</TableHead>
+                                <TableHead className="text-right">Item Price</TableHead>
+                                <TableHead className="text-right">Jastip Fee</TableHead>
+                                <TableHead className="text-right">Total</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {unpaidOrders.map((order) => (
+                                <TableRow key={order.id}>
+                                    <TableCell className="font-medium">{order.itemDescription}</TableCell>
+                                    <TableCell className="text-center">{order.quantity}</TableCell>
+                                    <TableCell className="text-right">{formatRupiah(order.price || 0)}</TableCell>
+                                    <TableCell className="text-right">{formatRupiah(order.jastipFee || 0)}</TableCell>
+                                    <TableCell className="text-right">{formatRupiah(((order.price || 0) + (order.jastipFee || 0)) * order.quantity)}</TableCell>
+                                </TableRow>
+                                ))}
+                            </TableBody>
+                            <TableFooter className="bg-muted">
+                                <TableRow className="text-lg">
+                                <TableCell colSpan={4} className="text-right font-bold">Grand Total</TableCell>
+                                <TableCell className="text-right font-bold text-primary">{formatRupiah(grandTotal)}</TableCell>
+                                </TableRow>
+                            </TableFooter>
+                            </Table>
                         </div>
-                        <div>
-                            <p className="font-semibold">Payment Details:</p>
-                            <div className="p-4 bg-muted rounded-md text-muted-foreground">
-                                <p>TF hanya atas nama <strong>Fathya Athifah</strong></p>
-                                <ul className="list-none space-y-2 mt-2">
-                                    {paymentDetails.map(detail => (
-                                         <li key={detail.name} className="flex justify-between items-center">
-                                            <span><strong>{detail.name}:</strong> {detail.number}</span>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => handleCopyToClipboard(detail.number, detail.name)}
-                                                className="h-7 px-2"
-                                            >
-                                                <Copy className="h-3 w-3 mr-1" />
-                                                Copy
-                                            </Button>
-                                        </li>
-                                    ))}
+                        <div className="space-y-4 text-sm">
+                            <div>
+                                <p className="font-semibold">Specific Requests:</p>
+                                <ul className="text-muted-foreground list-disc list-inside p-2 bg-muted rounded-md">
+                                    {unpaidOrders.filter(o => o.specificRequests).length > 0 ? (
+                                    unpaidOrders.map(o => o.specificRequests && <li key={o.id}>{o.specificRequests}</li>)
+                                    ) : (
+                                    <li>No specific requests.</li>
+                                    )}
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-semibold">Payment Details:</p>
+                                <div className="p-4 bg-muted rounded-md text-muted-foreground">
+                                    <p>TF hanya atas nama <strong>Fathya Athifah</strong></p>
+                                    <ul className="list-none space-y-2 mt-2">
+                                        {paymentDetails.map(detail => (
+                                            <li key={detail.name} className="flex justify-between items-center">
+                                                <span><strong>{detail.name}:</strong> {detail.number}</span>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => handleCopyToClipboard(detail.number, detail.name)}
+                                                    className="h-7 px-2"
+                                                >
+                                                    <Copy className="h-3 w-3 mr-1" />
+                                                    Copy
+                                                </Button>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </div>
+                            <div>
+                                <p className="font-semibold">Notes:</p>
+                                <ul className="text-muted-foreground list-disc list-inside p-2 bg-muted rounded-md">
+                                    <li>TF maksimal 1x24jam</li>
+                                    <li>mohon kirimkan bukti transfernya yaa kak</li>
+                                    <li>masih boleh nambah order kok ;)</li>
                                 </ul>
                             </div>
                         </div>
-                        <div>
-                            <p className="font-semibold">Notes:</p>
-                            <ul className="text-muted-foreground list-disc list-inside p-2 bg-muted rounded-md">
-                                <li>TF maksimal 1x24jam</li>
-                                <li>mohon kirimkan bukti transfernya yaa kak</li>
-                                <li>masih boleh nambah order kok ;)</li>
-                            </ul>
-                        </div>
-                    </div>
+                        </>
+                    ) : (
+                        <Alert>
+                            <Info className="h-4 w-4" />
+                            <AlertTitle>All Orders Paid</AlertTitle>
+                            <AlertDescription>
+                                There are no outstanding payments. Thank you!
+                            </AlertDescription>
+                        </Alert>
+                    )}
                 </div>
             </CardContent>
         </Card>
@@ -229,5 +243,3 @@ export default function PublicInvoicePage() {
         </div>
     );
 }
-
-    
