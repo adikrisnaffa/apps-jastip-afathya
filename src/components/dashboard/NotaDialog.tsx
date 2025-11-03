@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "../ui/separator";
-import { Copy } from "lucide-react";
+import { Copy, Link as LinkIcon } from "lucide-react";
 
 type NotaDialogProps = {
   orders: Order[];
@@ -48,11 +48,30 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
   }, 0);
 
   const firstOrderDate = orders[0]?.createdAt?.toDate();
+  const eventId = orders[0]?.eventId;
 
-  const handlePayment = () => {
-    toast({
-      title: "Payment Successful!",
-      description: `Payment for ${customerName} has been processed.`,
+  const handleCopyLink = () => {
+    if (!eventId) {
+      toast({
+        title: "Error",
+        description: "Cannot generate link without an event ID.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const link = `${window.location.origin}/invoice/${eventId}/${encodeURIComponent(customerName)}`;
+    navigator.clipboard.writeText(link).then(() => {
+        toast({
+            title: "Link Copied!",
+            description: "Invoice link copied to clipboard.",
+        })
+    }).catch(err => {
+        console.error("Failed to copy link:", err);
+        toast({
+            title: "Copy Failed",
+            description: "Could not copy the invoice link.",
+            variant: "destructive"
+        })
     });
   };
 
@@ -270,7 +289,6 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
               <div class="brand-name">Jastip.nya by Afathya</div>
             </div>
           </div>
-        </div>
   
         <script>
           setTimeout(() => window.print(), 600);
@@ -394,7 +412,10 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
           <Separator />
           <DialogFooter className="sm:justify-between gap-2 pt-4">
               <Button variant="outline" onClick={handlePrint}>Print</Button>
-              <Button onClick={handlePayment} className="bg-accent hover:bg-accent/90 text-accent-foreground">Pay Now</Button>
+              <Button onClick={handleCopyLink} variant="secondary">
+                <LinkIcon className="mr-2 h-4 w-4" />
+                Copy Link
+              </Button>
           </DialogFooter>
         </div>
       </DialogContent>
