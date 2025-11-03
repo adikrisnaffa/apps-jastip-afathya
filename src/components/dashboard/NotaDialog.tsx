@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { Order } from "@/lib/types";
@@ -11,7 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import Image from "next/image";
 import {
   Table,
@@ -24,7 +25,7 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "../ui/separator";
-import { Copy, Link as LinkIcon } from "lucide-react";
+import { Copy, Link as LinkIcon, Share2 } from "lucide-react";
 
 type NotaDialogProps = {
   orders: Order[];
@@ -40,6 +41,13 @@ const paymentDetails = [
 
 export function NotaDialog({ orders, customerName, children }: NotaDialogProps & { children: ReactNode }) {
   const { toast } = useToast();
+  const [isShareSupported, setIsShareSupported] = useState(false);
+
+  useEffect(() => {
+    if (navigator.share) {
+      setIsShareSupported(true);
+    }
+  }, []);
   
   const grandTotal = orders.reduce((acc, order) => {
     const itemTotal = (order.price || 0) * order.quantity;
@@ -50,8 +58,16 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
   const firstOrderDate = orders[0]?.createdAt?.toDate();
   const eventId = orders[0]?.eventId;
 
-  const handleCopyLink = () => {
+  const getInvoiceLink = () => {
     if (!eventId) {
+      return null;
+    }
+    return `${window.location.origin}/invoice/${eventId}/${encodeURIComponent(customerName)}`;
+  }
+
+  const handleCopyLink = () => {
+    const link = getInvoiceLink();
+    if (!link) {
       toast({
         title: "Error",
         description: "Cannot generate link without an event ID.",
@@ -59,7 +75,6 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
       });
       return;
     }
-    const link = `${window.location.origin}/invoice/${eventId}/${encodeURIComponent(customerName)}`;
     navigator.clipboard.writeText(link).then(() => {
         toast({
             title: "Link Copied!",
@@ -73,6 +88,39 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
             variant: "destructive"
         })
     });
+  };
+
+  const handleShare = async () => {
+    const link = getInvoiceLink();
+    if (!link) {
+      toast({ title: "Error", description: "Cannot generate link without an event ID.", variant: "destructive" });
+      return;
+    }
+
+    const shareData = {
+      title: `Invoice for ${customerName}`,
+      text: `Here is the invoice for your Jastip order.`,
+      url: link,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        throw new Error("Web Share API not supported.");
+      }
+    } catch (err: any) {
+      console.error("Failed to share:", err);
+      // Fallback to copy link if sharing fails or is cancelled
+      if (err.name !== 'AbortError') {
+        toast({
+            title: "Sharing Failed",
+            description: "Could not open share dialog. Link copied instead.",
+            variant: "destructive",
+        });
+        handleCopyLink();
+      }
+    }
   };
 
   const handleCopyToClipboard = (text: string, label: string) => {
@@ -410,15 +458,24 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
         </div>
         <div className="print-hide">
           <Separator />
-          <DialogFooter className="sm:justify-between gap-2 pt-4">
+          <DialogFooter className="sm:justify-between gap-2 pt-4 flex-wrap">
               <Button variant="outline" onClick={handlePrint}>Print</Button>
-              <Button onClick={handleCopyLink} variant="secondary">
-                <LinkIcon className="mr-2 h-4 w-4" />
-                Copy Link
-              </Button>
+              <div className="flex gap-2">
+                {isShareSupported && (
+                    <Button onClick={handleShare} variant="secondary">
+                        <Share2 className="mr-2 h-4 w-4" />
+                        Share Link
+                    </Button>
+                )}
+                <Button onClick={handleCopyLink} variant="secondary">
+                    <LinkIcon className="mr-2 h-4 w-4" />
+                    Copy Link
+                </Button>
+              </div>
           </DialogFooter>
         </div>
       </DialogContent>
     </Dialog>
   );
 }
+
