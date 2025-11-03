@@ -41,8 +41,8 @@ const orderFormSchema = z.object({
     .string({
       required_error: "Please enter an item description.",
     })
-    .min(10, {
-      message: "Description must be at least 10 characters.",
+    .min(1, {
+      message: "Please enter an item description.",
     }),
   quantity: z.coerce
     .number({
