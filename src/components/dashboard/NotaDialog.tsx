@@ -24,11 +24,19 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "../ui/separator";
+import { Copy } from "lucide-react";
 
 type NotaDialogProps = {
   orders: Order[];
   customerName: string;
 };
+
+const paymentDetails = [
+    { name: "BCA", number: "7641326767" },
+    { name: "BSI", number: "7315234861" },
+    { name: "Seabank", number: "901746352718" },
+    { name: "Shopeepay", number: "089653008911" },
+]
 
 export function NotaDialog({ orders, customerName, children }: NotaDialogProps & { children: ReactNode }) {
   const { toast } = useToast();
@@ -47,6 +55,22 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
       description: `Payment for ${customerName} has been processed.`,
     });
   };
+
+  const handleCopyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+        toast({
+            title: "Copied to Clipboard",
+            description: `${label} (${text}) berhasil disalin.`,
+        })
+    }).catch(err => {
+        console.error("Failed to copy:", err);
+        toast({
+            title: "Copy Failed",
+            description: "Could not copy text to clipboard.",
+            variant: "destructive"
+        })
+    });
+  }
 
   const handlePrint = () => {
     const printWindow = window.open('', '_blank', 'width=900,height=1000');
@@ -338,11 +362,21 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
                 <p className="font-semibold">Payment Details:</p>
                 <div className="p-2 bg-muted rounded-md print-bg-transparent">
                     <p className="text-muted-foreground">TF hanya atas nama <strong>Fathya Athifah</strong></p>
-                    <ul className="text-muted-foreground list-none space-y-1 mt-1">
-                        <li><strong>BCA:</strong> 7641326767</li>
-                        <li><strong>BSI:</strong> 7315234861</li>
-                        <li><strong>Seabank:</strong> 901746352718</li>
-                        <li><strong>Shopeepay:</strong> 089653008911</li>
+                     <ul className="text-muted-foreground list-none space-y-2 mt-2">
+                        {paymentDetails.map(detail => (
+                             <li key={detail.name} className="flex justify-between items-center">
+                                <span><strong>{detail.name}:</strong> {detail.number}</span>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleCopyToClipboard(detail.number, detail.name)}
+                                    className="h-7 px-2"
+                                >
+                                    <Copy className="h-3 w-3 mr-1" />
+                                    Copy
+                                </Button>
+                            </li>
+                        ))}
                     </ul>
                 </div>
              </div>
