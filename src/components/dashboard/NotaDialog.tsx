@@ -99,7 +99,7 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
 
     const shareData = {
       title: `Invoice for ${customerName}`,
-      text: `[Jastip.nyabyAfathya]\nAssalamu'alaikum. Hi Kak,\n\nHere is the invoice for your Jastip order.\n${link}\n\nTerima kasih :)`,
+      text: `[Jastip.nyabyAfathya]\nAssalamu'alaikum. Hi Kak,\n\nHere is the invoice for your Jastip order.\n${link}\n\nThank you :)`,
     };
 
     try {
