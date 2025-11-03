@@ -5,8 +5,8 @@ import { useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { writeBatch, doc } from "firebase/firestore";
 import OrderCard from "./OrderCard";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Truck, User, PlusCircle, Receipt, Trash2, CreditCard } from "lucide-react";
-import type { Order } from "@/lib/types";
+import { Truck, User, PlusCircle, Receipt, Trash2, CreditCard, Undo2 } from "lucide-react";
+import type { Order, OrderStatus } from "@/lib/types";
 import { Skeleton } from "../ui/skeleton";
 import {
   Accordion,
@@ -96,7 +96,7 @@ export default function OrderList({ eventId, orders, isLoading }: OrderListProps
     }
   }
 
-  const handleMarkAllPaid = async (customerName: string) => {
+  const handleToggleAllStatus = async (customerName: string, newStatus: OrderStatus) => {
     if (!firestore || !user || !groupedOrders[customerName]) return;
     
     setIsUpdatingStatus(customerName);
@@ -106,7 +106,7 @@ export default function OrderList({ eventId, orders, isLoading }: OrderListProps
 
       ordersToUpdate.forEach(order => {
         const orderRef = doc(firestore, `orders`, order.id);
-        batch.update(orderRef, { status: "Paid" });
+        batch.update(orderRef, { status: newStatus });
       });
 
       await batch.commit();
@@ -117,12 +117,12 @@ export default function OrderList({ eventId, orders, isLoading }: OrderListProps
           "UPDATE",
           "Order",
           `batch-${customerName}`,
-          `Marked all ${ordersToUpdate.length} orders as "Paid" for customer: ${customerName}`
+          `Marked all ${ordersToUpdate.length} orders as "${newStatus}" for customer: ${customerName}`
         );
 
       toast({
         title: "Orders Updated",
-        description: `All orders for ${customerName} have been marked as Paid.`,
+        description: `All orders for ${customerName} have been marked as ${newStatus}.`,
       });
     } catch (error: any) {
        toast({
@@ -173,19 +173,23 @@ export default function OrderList({ eventId, orders, isLoading }: OrderListProps
 
   return (
     <Accordion type="multiple" className="w-full space-y-4">
-      {customerKeys.map((customerName) => (
+      {customerKeys.map((customerName) => {
+        const customerOrders = groupedOrders[customerName];
+        const allPaid = customerOrders.every(o => o.status === 'Paid');
+
+        return (
         <AccordionItem value={customerName} key={customerName} className="border-b-0 rounded-lg bg-card text-card-foreground shadow-md transition-all">
             <div className="flex items-center justify-between w-full p-4 font-semibold text-left">
               <AccordionTrigger className="flex-1 p-0 hover:no-underline">
                 <div className="flex items-center gap-4 cursor-pointer">
                   <User className="h-5 w-5 text-primary" />
                   <span className="text-lg font-headline">{customerName}</span>
-                  <Badge variant="secondary">{groupedOrders[customerName].length} Order(s)</Badge>
+                  <Badge variant="secondary">{customerOrders.length} Order(s)</Badge>
                 </div>
               </AccordionTrigger>
               
               <div className="flex items-center gap-2 pl-4">
-                <NotaDialog orders={groupedOrders[customerName]} customerName={customerName}>
+                <NotaDialog orders={customerOrders} customerName={customerName}>
                   <Button variant="outline" size="sm">
                     <Receipt className="mr-2 h-4 w-4" />
                     View Receipt
@@ -203,9 +207,17 @@ export default function OrderList({ eventId, orders, isLoading }: OrderListProps
                     Add Order
                   </Link>
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => handleMarkAllPaid(customerName)} disabled={isUpdatingStatus === customerName}>
-                      <CreditCard className="mr-2 h-4 w-4" />
-                      {isUpdatingStatus === customerName ? "Paying..." : "Paid"}
+                <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => handleToggleAllStatus(customerName, allPaid ? 'Not Paid' : 'Paid')} 
+                    disabled={isUpdatingStatus === customerName}
+                >
+                      {isUpdatingStatus === customerName ? "..." : allPaid ? (
+                        <><Undo2 className="mr-2 h-4 w-4" /> Unpaid All</>
+                      ) : (
+                        <><CreditCard className="mr-2 h-4 w-4" /> Paid All</>
+                      )}
                 </Button>
                 <AlertDialog>
                       <AlertDialogTrigger asChild>
@@ -218,7 +230,7 @@ export default function OrderList({ eventId, orders, isLoading }: OrderListProps
                           <AlertDialogHeader>
                               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                               <AlertDialogDescription>
-                                  This will permanently delete all {groupedOrders[customerName].length} orders for <strong>{customerName}</strong>. This action cannot be undone.
+                                  This will permanently delete all {customerOrders.length} orders for <strong>{customerName}</strong>. This action cannot be undone.
                               </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
@@ -233,13 +245,13 @@ export default function OrderList({ eventId, orders, isLoading }: OrderListProps
             </div>
             <AccordionContent className="pt-0 p-4">
                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 pt-4 border-t">
-                    {groupedOrders[customerName].map((order) => (
+                    {customerOrders.map((order) => (
                         <OrderCard key={order.id} order={order} isOwner={false} />
                     ))}
                 </div>
             </AccordionContent>
         </AccordionItem>
-      ))}
+      )})}
     </Accordion>
   );
 }

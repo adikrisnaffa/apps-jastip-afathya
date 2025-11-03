@@ -20,7 +20,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Edit, Trash2, CreditCard } from "lucide-react";
+import { Edit, Trash2, CreditCard, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { logActivity } from "@/lib/activity-logger";
@@ -69,21 +69,24 @@ export default function OrderCard({ order }: OrderCardProps) {
     }
   }
 
-  const handleMarkAsPaid = async () => {
+  const handleToggleStatus = async () => {
     if (!user || !firestore) return;
+
     setIsUpdatingStatus(true);
     const orderRef = doc(firestore, "orders", order.id);
+    const newStatus: OrderStatus = order.status === "Paid" ? "Not Paid" : "Paid";
+
     try {
-        await updateDoc(orderRef, { status: "Paid" });
+        await updateDoc(orderRef, { status: newStatus });
         logActivity(
           firestore,
           user,
           "UPDATE",
           "Order",
           order.id,
-          `Marked order as "Paid" for "${order.customerName}" - Item: ${order.itemDescription}`
+          `Marked order as "${newStatus}" for "${order.customerName}" - Item: ${order.itemDescription}`
         );
-        toast({ title: "Order Updated", description: "The order has been marked as Paid." });
+        toast({ title: "Order Updated", description: `The order has been marked as ${newStatus}.` });
     } catch (error: any) {
         toast({ title: "Error Updating Status", description: error.message, variant: "destructive"});
     } finally {
@@ -175,9 +178,12 @@ export default function OrderCard({ order }: OrderCardProps) {
             </Link>
         </Button>
 
-        <Button variant="outline" size="sm" onClick={handleMarkAsPaid} disabled={isUpdatingStatus || order.status === 'Paid'}>
-            <CreditCard className="mr-2 h-4 w-4" />
-            {isUpdatingStatus ? "..." : "Paid"}
+        <Button variant="outline" size="sm" onClick={handleToggleStatus} disabled={isUpdatingStatus}>
+             {isUpdatingStatus ? ( "..." ) : order.status === 'Paid' ? (
+                <><Undo2 className="mr-2 h-4 w-4" /> Unpaid</>
+             ) : (
+                <><CreditCard className="mr-2 h-4 w-4" /> Paid</>
+             )}
         </Button>
         
         <AlertDialog>
