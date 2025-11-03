@@ -10,6 +10,7 @@ import { doc } from 'firebase/firestore';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import type { JastipEvent } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import Header from '@/components/layout/Header';
 
 export default function NewOrderPage() {
   const searchParams = useSearchParams();
@@ -54,6 +55,9 @@ export default function NewOrderPage() {
   }
 
   return (
+    <>
+    <Header />
+    <main className="flex-grow">
     <div className="container mx-auto max-w-2xl py-12 px-4">
       <div className="relative text-center mb-8">
         <div>
@@ -67,5 +71,7 @@ export default function NewOrderPage() {
       </div>
       <OrderForm eventId={eventId} defaultCustomerName={customerName || ''} />
     </div>
+    </main>
+    </>
   );
 }

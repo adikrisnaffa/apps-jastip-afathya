@@ -27,6 +27,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { logActivity } from "@/lib/activity-logger";
 import { ImportDialog } from "@/components/dashboard/ImportDialog";
+import Header from "@/components/layout/Header";
 
 export default function EventDetailPage() {
   const params = useParams();
@@ -150,6 +151,9 @@ export default function EventDetailPage() {
   }
 
   return (
+    <>
+    <Header />
+    <main className="flex-grow">
     <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8">
       <div className="mb-8">
         <div className="flex justify-between items-start flex-wrap gap-4">
@@ -225,5 +229,7 @@ export default function EventDetailPage() {
       </div>
       <OrderList eventId={event.id} orders={orders || []} isLoading={areOrdersLoading}/>
     </div>
+    </main>
+    </>
   );
 }

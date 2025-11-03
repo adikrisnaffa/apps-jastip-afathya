@@ -18,6 +18,7 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import Link from "next/link";
 import type { User as UserType } from "@/lib/types";
+import Header from "@/components/layout/Header";
 
 export default function MasterPage() {
   const { user, isUserLoading } = useUser();
@@ -104,6 +105,9 @@ export default function MasterPage() {
   }
 
   return (
+    <>
+    <Header />
+    <main className="flex-grow">
     <div className="container mx-auto max-w-4xl py-12 px-4">
        <div className="text-center mb-8">
             <h1 className="text-4xl font-bold font-headline text-primary">
@@ -161,5 +165,7 @@ export default function MasterPage() {
             </form>
         </Card>
     </div>
+    </main>
+    </>
   );
 }

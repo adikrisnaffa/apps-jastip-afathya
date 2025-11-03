@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import Header from "@/components/layout/Header";
 
 
 function ActionBadge({ action }: { action: ActivityLog['action'] }) {
@@ -67,6 +68,9 @@ export default function LogsPage() {
 
 
     return (
+        <>
+        <Header/>
+        <main className="flex-grow">
         <div className="container mx-auto max-w-6xl py-12 px-4">
             <Card className="shadow-xl">
                 <CardHeader>
@@ -133,5 +137,7 @@ export default function LogsPage() {
                 </CardFooter>
             </Card>
         </div>
+        </main>
+        </>
     );
 }

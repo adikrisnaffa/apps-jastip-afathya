@@ -4,6 +4,7 @@ import { ProfileForm } from "@/components/profile/ProfileForm";
 import { useUser } from "@/firebase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import Header from "@/components/layout/Header";
 
 export default function ProfilePage() {
     const { user, isUserLoading } = useUser();
@@ -33,6 +34,9 @@ export default function ProfilePage() {
     }
 
     return (
+        <>
+        <Header/>
+        <main className="flex-grow">
         <div className="container mx-auto max-w-2xl py-12 px-4">
             <Card className="shadow-xl">
                  <CardHeader>
@@ -48,5 +52,7 @@ export default function ProfilePage() {
                  </CardContent>
             </Card>
         </div>
+        </main>
+        </>
     );
 }

@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { PlusCircle } from "lucide-react";
+import Header from "@/components/layout/Header";
 
 export default function Home() {
   const firestore = useFirestore();
@@ -24,6 +25,9 @@ export default function Home() {
   const { data: events, isLoading } = useCollection<JastipEvent>(eventsQuery);
 
   return (
+    <>
+    <Header />
+    <main className="flex-grow">
     <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8">
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold font-headline text-primary">
@@ -67,5 +71,7 @@ export default function Home() {
         </div>
       )}
     </div>
+    </main>
+    </>
   );
 }

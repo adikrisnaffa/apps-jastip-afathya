@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import Header from '@/components/layout/Header';
 
 export default function EditOrderPage() {
   const params = useParams();
@@ -99,6 +100,9 @@ export default function EditOrderPage() {
    }
 
   return (
+    <>
+    <Header/>
+    <main className="flex-grow">
     <div className="container mx-auto max-w-2xl py-12 px-4">
       <div className="relative text-center mb-8">
         <div>
@@ -112,5 +116,7 @@ export default function EditOrderPage() {
       </div>
       <OrderForm eventId={eventId} order={order} />
     </div>
+    </main>
+    </>
   );
 }

@@ -12,6 +12,7 @@ import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import type { JastipEvent } from '@/lib/types';
+import Header from '@/components/layout/Header';
 
 export default function EditEventPage() {
   const params = useParams();
@@ -58,8 +59,13 @@ export default function EditEventPage() {
   }
 
   return (
+    <>
+    <Header />
+    <main className="flex-grow">
     <div className="container mx-auto max-w-2xl py-12 px-4">
       <EventForm event={event} />
     </div>
+    </main>
+    </>
   );
 }

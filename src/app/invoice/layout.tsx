@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Toaster } from "@/components/ui/toaster";
 import "../globals.css";
 import { FirebaseClientProvider } from "@/firebase/client-provider";
+import React from "react";
 
 export const metadata: Metadata = {
   title: "Invoice - JasTip Express",
@@ -14,19 +15,20 @@ export default function InvoiceLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // This layout is a child of the RootLayout.
+  // It should not render its own <html>, <head>, or <body> tags.
+  // We wrap the providers and children in a React Fragment.
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap" rel="stylesheet" />
-      </head>
-      <body className="font-body antialiased bg-background">
-        <FirebaseClientProvider>
-          <main>{children}</main>
-          <Toaster />
-        </FirebaseClientProvider>
-      </body>
-    </html>
+    <>
+      {/* The RootLayout already includes FirebaseClientProvider, Toaster etc.
+          However, to make this layout self-contained and not render the main
+          Header, we need to provide the necessary context again for the
+          invoice page to function correctly on its own when accessed directly.
+          But since RootLayout wraps everything, we actually don't need a nested provider.
+          The children will be rendered inside the RootLayout's main tag.
+          The key is that this layout component itself doesn't render the Header.
+      */}
+      {children}
+    </>
   );
 }
