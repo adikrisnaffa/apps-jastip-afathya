@@ -99,8 +99,8 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
 
     const shareData = {
       title: `Invoice for ${customerName}`,
-      text: `Here is the invoice for your Jastip order.`,
-      url: link,
+      text: `[Jastip.nyabyAfathya]\nAssalamu'alaikum. Hi Kak,\n\nHere is the invoice for your Jastip order.\n${link}\n\nTerima kasih :)`,
+      url: link, // some platforms might only use the url field.
     };
 
     try {
@@ -478,4 +478,3 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
     </Dialog>
   );
 }
-
