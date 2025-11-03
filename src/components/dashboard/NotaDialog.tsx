@@ -91,7 +91,7 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
             align-items: center;
             margin-bottom: 1rem;
           }
-          .header img { height: 80px; }
+          .header img { height: 100px; }
           .invoice-title {
             font-size: 2rem;
             font-weight: bold;
@@ -125,9 +125,11 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
           }
           .grand-total .total-amount { color: ${primaryColor}; }
   
-          .specific-requests { margin: 1.5rem 0; font-size: 0.95rem; }
-          .specific-requests ul { margin: 0.5rem 0 0 1.2rem; color: #444; }
-  
+          .details-section { margin: 1.5rem 0; font-size: 0.9rem; }
+          .details-section h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; color: #333; }
+          .details-section ul { margin: 0.5rem 0 0 1.2rem; color: #444; list-style-type: none; padding-left: 0;}
+          .details-section li { margin-bottom: 0.25rem; }
+
           /* Footer: Tanggal, Tanda Tangan, Nama Brand */
           .footer {
             display: flex;
@@ -141,8 +143,8 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
           .footer-left { text-align: left; }
           .footer-right { text-align: right; }
           .signature-img { 
-              height: 80px;        /* ← UBAH ANGKA INI */
-              width: auto;         /* biar proporsi tetap */
+              height: 80px;
+              width: auto;
               margin: 0.5rem 0; 
             }
           .brand-name {
@@ -203,16 +205,36 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
             </tfoot>
           </table>
   
-          <!-- SPECIFIC REQUESTS -->
-          <div class="specific-requests">
-            <p class="font-bold">Specific Requests:</p>
+          <!-- DETAILS SECTION -->
+          <div class="details-section">
+            <h3>Specific Requests:</h3>
             <ul>
               ${orders.filter(o => o.specificRequests).length > 0
-                ? orders.map(o => o.specificRequests ? `<li>${o.specificRequests}</li>` : '').join('')
-                : '<li>No specific requests.</li>'
+                ? orders.map(o => o.specificRequests ? `<li>- ${o.specificRequests}</li>` : '').join('')
+                : '<li>- No specific requests.</li>'
               }
             </ul>
           </div>
+
+          <div class="details-section">
+            <h3>Payment Details:</h3>
+            <p>TF hanya atas nama <strong>Fathya Athifah</strong></p>
+            <ul>
+                <li><strong>BCA:</strong> 7641326767</li>
+                <li><strong>BSI:</strong> 7315234861</li>
+                <li><strong>Seabank:</strong> 901746352718</li>
+                <li><strong>Shopeepay:</strong> 089653008911</li>
+            </ul>
+          </div>
+
+           <div class="details-section">
+                <h3>Notes:</h3>
+                <ul>
+                    <li>- TF maksimal 1x24jam</li>
+                    <li>- mohon kirimkan bukti transfernya yaa kak</li>
+                    <li>- masih boleh nambah order kok ;)</li>
+                </ul>
+            </div>
   
           <!-- FOOTER: Tanggal + Tanda Tangan + Brand -->
           <div class="footer">
@@ -258,7 +280,7 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
                     src="/jastip-logo.png"
                     alt="Jastip.nya by Afathya"
                     width={150}
-                    height={50}
+                    height={100}
                     priority
                 />
                 <h1 className="text-2xl font-bold uppercase text-primary">Invoice</h1>
@@ -271,7 +293,7 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
         </div>
 
         <div className="py-4 space-y-4">
-          <div className="max-h-[400px] overflow-y-auto print-expand">
+          <div className="max-h-[300px] overflow-y-auto print-expand">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -301,15 +323,37 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
               </TableFooter>
             </Table>
           </div>
-          <div className="space-y-2">
-             <p className="font-semibold">Specific Requests:</p>
-             <ul className="text-sm text-muted-foreground list-disc list-inside p-2 bg-muted rounded-md print-bg-transparent">
-                {orders.filter(o => o.specificRequests).length > 0 ? (
-                  orders.map(o => o.specificRequests && <li key={o.id}>{o.specificRequests}</li>)
-                ) : (
-                  <li>No specific requests.</li>
-                )}
-             </ul>
+          <div className="space-y-4 text-sm">
+             <div>
+                <p className="font-semibold">Specific Requests:</p>
+                <ul className="text-muted-foreground list-disc list-inside p-2 bg-muted rounded-md print-bg-transparent">
+                    {orders.filter(o => o.specificRequests).length > 0 ? (
+                    orders.map(o => o.specificRequests && <li key={o.id}>{o.specificRequests}</li>)
+                    ) : (
+                    <li>No specific requests.</li>
+                    )}
+                </ul>
+             </div>
+             <div>
+                <p className="font-semibold">Payment Details:</p>
+                <div className="p-2 bg-muted rounded-md print-bg-transparent">
+                    <p className="text-muted-foreground">TF hanya atas nama <strong>Fathya Athifah</strong></p>
+                    <ul className="text-muted-foreground list-none space-y-1 mt-1">
+                        <li><strong>BCA:</strong> 7641326767</li>
+                        <li><strong>BSI:</strong> 7315234861</li>
+                        <li><strong>Seabank:</strong> 901746352718</li>
+                        <li><strong>Shopeepay:</strong> 089653008911</li>
+                    </ul>
+                </div>
+             </div>
+              <div>
+                <p className="font-semibold">Notes:</p>
+                <ul className="text-muted-foreground list-disc list-inside p-2 bg-muted rounded-md print-bg-transparent">
+                    <li>TF maksimal 1x24jam</li>
+                    <li>mohon kirimkan bukti transfernya yaa kak</li>
+                    <li>masih boleh nambah order kok ;)</li>
+                </ul>
+              </div>
           </div>
         </div>
         <div className="print-hide">
