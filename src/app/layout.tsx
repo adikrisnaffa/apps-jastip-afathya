@@ -1,12 +1,21 @@
 import type { Metadata } from "next";
 import { Toaster } from "@/components/ui/toaster";
-import Header from "@/components/layout/Header";
 import "./globals.css";
 import { FirebaseClientProvider } from "@/firebase/client-provider";
 
 export const metadata: Metadata = {
   title: "JasTip Express",
   description: "Your trusted personal shopping assistant.",
+};
+
+const AppFooter = () => {
+  return (
+    <footer className="bg-card text-card-foreground py-4 mt-auto">
+      <div className="container mx-auto text-center text-sm text-muted-foreground">
+        © Tukang Ngetest {new Date().getFullYear()}
+      </div>
+    </footer>
+  );
 };
 
 export default function RootLayout({
@@ -23,7 +32,10 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased min-h-screen flex flex-col">
         <FirebaseClientProvider>
-          {children}
+          <div className="flex-grow flex flex-col">
+            {children}
+          </div>
+          <AppFooter />
           <Toaster />
         </FirebaseClientProvider>
       </body>
