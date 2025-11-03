@@ -108,7 +108,7 @@ export default function LogsPage() {
                                             <TableCell className="text-sm text-muted-foreground">
                                                 {log.timestamp ? format(log.timestamp.toDate(), 'PPpp') : 'N/A'}
                                             </TableCell>
-                                            <TableCell className="font-medium">{log.userEmail}</TableCell>
+                                            <TableCell className="font-medium">{log.userName || log.userEmail}</TableCell>
                                             <TableCell><ActionBadge action={log.action} /></TableCell>
                                             <TableCell>{log.entityType}</TableCell>
                                             <TableCell className="text-sm">{log.details}</TableCell>

@@ -33,6 +33,7 @@ export function logActivity(
 
   const activityLog = {
     userId: user.uid,
+    userName: user.displayName || user.email, // Use displayName, fallback to email
     userEmail: user.email,
     action,
     entityType,

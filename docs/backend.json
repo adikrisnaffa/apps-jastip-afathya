@@ -144,6 +144,10 @@
           "type": "string",
           "description": "The ID of the user who performed the action."
         },
+        "userName": {
+          "type": "string",
+          "description": "The name of the user who performed the action."
+        },
         "userEmail": {
           "type": "string",
           "description": "The email of the user who performed the action."
@@ -173,6 +177,7 @@
       "required": [
         "id",
         "userId",
+        "userName",
         "userEmail",
         "action",
         "entityType",

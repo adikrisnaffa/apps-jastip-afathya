@@ -35,6 +35,7 @@ export type User = {
 export type ActivityLog = {
     id: string;
     userId: string;
+    userName: string;
     userEmail: string;
     action: "CREATE" | "UPDATE" | "DELETE";
     entityType: "Order" | "JastipEvent" | "User";
