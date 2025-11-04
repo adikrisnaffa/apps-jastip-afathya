@@ -75,6 +75,7 @@ export default function EventDetailPage() {
         "Original Price (per item)": order.originalPrice || 0,
         "Price (per item)": order.price,
         "Jastip Fee (per item)": order.jastipFee,
+        "Status": order.status,
         "Total": (order.price + order.jastipFee) * order.quantity,
         "Total Original Price": (order.originalPrice || 0) * order.quantity,
     }));
@@ -102,14 +103,16 @@ export default function EventDetailPage() {
     setIsDeleting(true);
     try {
         await deleteDoc(eventRef);
-        logActivity(
-          firestore,
-          user,
-          "DELETE",
-          "JastipEvent",
-          event.id,
-          `Deleted event: ${event.name}`
-        );
+        if (user) {
+          logActivity(
+            firestore,
+            user,
+            "DELETE",
+            "JastipEvent",
+            event.id,
+            `Deleted event: ${event.name}`
+          );
+        }
         toast({
             title: "Event Deleted",
             description: "The event has been successfully removed.",
@@ -233,3 +236,5 @@ export default function EventDetailPage() {
     </>
   );
 }
+
+    
