@@ -76,7 +76,6 @@ export default function EventDetailPage() {
         "Price (per item)": order.price,
         "Jastip Fee (per item)": order.jastipFee,
         "Status": order.status,
-        "Metode Pembayaran": "",
         "Total": (order.price + order.jastipFee) * order.quantity,
         "Total Original Price": (order.originalPrice || 0) * order.quantity,
     }));
@@ -237,5 +236,3 @@ export default function EventDetailPage() {
     </>
   );
 }
-
-    
