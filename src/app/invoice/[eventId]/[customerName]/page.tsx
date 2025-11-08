@@ -187,7 +187,7 @@ function InvoiceView({ event, orders, customerName }: { event: JastipEvent, orde
                         <AlertDescription>Please fill in your shipping information.</AlertDescription>
                     </CardHeader>
                     <CardContent>
-                        <InvoiceProfileForm customerName={customerName} />
+                        <InvoiceProfileForm customerName={customerName} eventId={event.id}/>
                     </CardContent>
                 </Card>
             )}

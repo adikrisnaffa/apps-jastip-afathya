@@ -35,22 +35,27 @@ const profileFormSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
-export function InvoiceProfileForm({ customerName }: { customerName: string }) {
+export function InvoiceProfileForm({ customerName, eventId }: { customerName: string, eventId: string }) {
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
 
+  // Create a unique ID for the customer's shipping info based on event and name
+  const shippingInfoId = `shipping_${eventId}_${customerName.replace(/\s+/g, '_')}`;
+
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return doc(firestore, "users", user.uid);
-  }, [firestore, user]);
+    // We now point to a subcollection within the user's document
+    // to store shipping details for different customers.
+    return doc(firestore, "users", user.uid, "shipping_details", shippingInfoId);
+  }, [firestore, user, shippingInfoId]);
 
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserType>(userDocRef);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      name: "",
+      name: customerName,
       phone: "",
       address: "",
     },
@@ -65,6 +70,7 @@ export function InvoiceProfileForm({ customerName }: { customerName: string }) {
             address: userProfile.address || "",
         });
     } else {
+        // If no profile exists for this specific customer, start with a blank form
         form.reset({
              name: customerName,
              phone: "",
@@ -85,18 +91,19 @@ export function InvoiceProfileForm({ customerName }: { customerName: string }) {
 
     try {
       const profileData: Partial<UserType> = {
-        id: user.uid,
+        id: shippingInfoId,
         name: data.name,
-        email: user.email || `${user.uid}@anonymous.jastip`, // Dummy email for anonymous
+        email: user.email || `${user.uid}@anonymous.jastip`,
         phone: data.phone || "",
         address: data.address || "",
       };
 
+      // Save the data to the specific document for this customer's shipping info
       await setDoc(userDocRef, profileData, { merge: true });
 
       toast({
         title: "Information Saved!",
-        description: "Your shipping details have been saved.",
+        description: "Your shipping details have been saved for this invoice.",
       });
     } catch (error: any) {
       console.error("Error updating profile: ", error);
