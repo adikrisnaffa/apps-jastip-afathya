@@ -50,7 +50,7 @@ export function InvoiceProfileForm({ customerName }: { customerName: string }) {
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      name: customerName,
+      name: "",
       phone: "",
       address: "",
     },
