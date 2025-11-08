@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "../ui/separator";
-import { Copy, Link as LinkIcon, Share2, Info } from "lucide-react";
+import { Copy, ExternalLink, Share2, Info } from "lucide-react";
 import { Alert, AlertTitle, AlertDescription } from "../ui/alert";
 
 type NotaDialogProps = {
@@ -68,7 +68,7 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
     return `${window.location.origin}/invoice/${eventId}/${encodeURIComponent(customerName)}`;
   }
 
-  const handleCopyLink = () => {
+  const handleOpenLink = () => {
     const link = getInvoiceLink();
     if (!link) {
       toast({
@@ -78,19 +78,7 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
       });
       return;
     }
-    navigator.clipboard.writeText(link).then(() => {
-        toast({
-            title: "Link Copied!",
-            description: "Invoice link copied to clipboard.",
-        })
-    }).catch(err => {
-        console.error("Failed to copy link:", err);
-        toast({
-            title: "Copy Failed",
-            description: "Could not copy the invoice link.",
-            variant: "destructive"
-        })
-    });
+    window.open(link, '_blank');
   };
 
   const handleShare = async () => {
@@ -102,7 +90,7 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
 
     const shareData = {
       title: `Invoice for ${customerName}`,
-      text: `[Jastip.nyabyAfathya]\nAssalamu'alaikum. Hi Kak,\n\nHere is the invoice for your Jastip order.\n${link}\n\nThank you :)`,
+      text: `[Jastip.nyabyAfathya]\nAssalamu'alaikum. Hi Kak,\n\nHere is the invoice for your Jastip order.\n${link}\n\nTerima kasih :)`,
     };
 
     try {
@@ -115,12 +103,16 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
       console.error("Failed to share:", err);
       // Fallback to copy link if sharing fails or is cancelled
       if (err.name !== 'AbortError') {
+        const tempTextArea = document.createElement('textarea');
+        tempTextArea.value = shareData.text;
+        document.body.appendChild(tempTextArea);
+        tempTextArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(tempTextArea);
         toast({
-            title: "Sharing Failed",
-            description: "Could not open share dialog. Link copied instead.",
-            variant: "destructive",
+            title: "Sharing not available",
+            description: "Could not open share dialog. The message has been copied to your clipboard instead.",
         });
-        handleCopyLink();
       }
     }
   };
@@ -483,12 +475,12 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
                 {isShareSupported && (
                     <Button onClick={handleShare} variant="secondary">
                         <Share2 className="mr-2 h-4 w-4" />
-                        Share Link
+                        Share
                     </Button>
                 )}
-                <Button onClick={handleCopyLink} variant="secondary">
-                    <LinkIcon className="mr-2 h-4 w-4" />
-                    Copy Link
+                <Button onClick={handleOpenLink} variant="secondary">
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Open Link
                 </Button>
               </div>
           </DialogFooter>
