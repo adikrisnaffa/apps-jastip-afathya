@@ -58,8 +58,8 @@ export function NotaDialog({ orders, customerName, children }: NotaDialogProps &
     return acc + itemTotal + feeTotal;
   }, 0);
 
-  const firstOrderDate = unpaidOrders[0]?.createdAt?.toDate();
-  const eventId = unpaidOrders[0]?.eventId;
+  const firstOrderDate = unpaidOrders.length > 0 ? unpaidOrders[0]?.createdAt?.toDate() : orders[0]?.createdAt?.toDate();
+  const eventId = orders[0]?.eventId;
 
   const getInvoiceLink = () => {
     if (!eventId) {
